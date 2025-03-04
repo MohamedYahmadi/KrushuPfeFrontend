@@ -1,6 +1,7 @@
 {
   "expo": {
     "name": "KroshuPFE",
+    "Scheme": "KroshuPFE",
     "slug": "KroshuPFE",
     "version": "1.0.0",
     "orientation": "portrait",
