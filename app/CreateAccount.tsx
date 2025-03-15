@@ -1,50 +1,144 @@
-// app/CreateAccount.tsx
-import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Dimensions } from 'react-native';
+import Icon from 'react-native-vector-icons/FontAwesome';
+import axios from 'axios';
+
+const { width } = Dimensions.get('window');
 
 export default function CreateAccount() {
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+    const [teamName, setTeamName] = useState('');
+    const [registrationNumber, setRegistrationNumber] = useState('');
+
+    const handleSignUp = async () => {
+        try {
+            const response = await axios.post('http://localhost:8080/api/admin/create-user', {
+                firstName,
+                lastName,
+                email,
+                password,
+                teamName,
+                registrationNumber,
+                role: 'TEAM_MEMBER', // Default role (if still needed)
+            });
+            if (response.status === 200 && response.data === "User.ts Account Created Successfully") {
+                alert('User.ts account created successfully!');
+            } else {
+                alert('Failed to create user account.');
+            }
+        } catch (error) {
+            console.error(error);
+            alert('An error occurred while creating the user account.');
+        }
+    };
+
+    const togglePasswordVisibility = () => {
+        setIsPasswordVisible(!isPasswordVisible);
+    };
+
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Create Account</Text>
-            <TextInput
-                style={styles.input}
-                placeholder="First Name"
-                placeholderTextColor="#888"
-                keyboardType="email-address"
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Last Name"
-                placeholderTextColor="#888"
-                keyboardType="email-address"
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Email"
-                placeholderTextColor="#888"
-                keyboardType="email-address"
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Password"
-                placeholderTextColor="#888"
-                secureTextEntry
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Team Name"
-                placeholderTextColor="#888"
-                keyboardType="email-address"
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Registration Number"
-                placeholderTextColor="#888"
-                keyboardType="email-address"
-            />
-            <TouchableOpacity style={styles.button}>
-                <Text style={styles.buttonText}>Sign Up</Text>
-            </TouchableOpacity>
+            <ScrollView contentContainerStyle={styles.scrollContainer}>
+                <View style={styles.formContainer}>
+                    <Text style={styles.title}>Create New Account</Text>
+
+                    {/* Personal Information Section */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Personal Information</Text>
+                        <View style={styles.inputContainer}>
+                            <Icon name="user-o" size={18} color="#888" style={styles.icon} />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="First Name"
+                                placeholderTextColor="#888"
+                                value={firstName}
+                                onChangeText={setFirstName}
+                            />
+                        </View>
+                        <View style={styles.inputContainer}>
+                            <Icon name="user-o" size={18} color="#888" style={styles.icon} />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Last Name"
+                                placeholderTextColor="#888"
+                                value={lastName}
+                                onChangeText={setLastName}
+                            />
+                        </View>
+                    </View>
+
+                    {/* Account Information Section */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Account Information</Text>
+                        <View style={styles.inputContainer}>
+                            <Icon name="envelope-o" size={18} color="#888" style={styles.icon} />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Email Address"
+                                placeholderTextColor="#888"
+                                keyboardType="email-address"
+                                value={email}
+                                onChangeText={setEmail}
+                            />
+                        </View>
+                        <View style={styles.inputContainer}>
+                            <Icon name="lock" size={20} color="#888" style={styles.icon} />
+                            <TextInput
+                                style={[styles.input, { flex: 1 }]}
+                                placeholder="Password"
+                                placeholderTextColor="#888"
+                                secureTextEntry={!isPasswordVisible}
+                                value={password}
+                                onChangeText={setPassword}
+                            />
+                            <TouchableOpacity onPress={togglePasswordVisibility} style={styles.eyeIcon}>
+                                <Icon
+                                    name={isPasswordVisible ? 'eye-slash' : 'eye'}
+                                    size={20}
+                                    color="#888"
+                                />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    {/* Team Information Section */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Team Information</Text>
+                        <View style={styles.inputContainer}>
+                            <Icon name="users" size={18} color="#888" style={styles.icon} />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Team Name"
+                                placeholderTextColor="#888"
+                                value={teamName}
+                                onChangeText={setTeamName}
+                            />
+                        </View>
+                        <View style={styles.inputContainer}>
+                            <Icon name="id-card-o" size={16} color="#888" style={styles.icon} />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Registration Number"
+                                placeholderTextColor="#888"
+                                value={registrationNumber}
+                                onChangeText={setRegistrationNumber}
+                            />
+                        </View>
+                    </View>
+
+                    {/* Sign Up Button */}
+                    <TouchableOpacity style={styles.button} onPress={handleSignUp}>
+                        <View style={styles.solidButton}>
+                            <Text style={styles.buttonText}>Create Account</Text>
+                            <Icon name="arrow-right" size={18} color="#fff" style={styles.buttonIcon} />
+                        </View>
+                    </TouchableOpacity>
+                </View>
+            </ScrollView>
         </View>
     );
 }
@@ -52,38 +146,73 @@ export default function CreateAccount() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#1a1a1a', // Dark background
+        backgroundColor: '#1a1a1a', // Solid dark background
+    },
+    scrollContainer: {
+        flexGrow: 1,
+        paddingVertical: 30,
+    },
+    formContainer: {
+        width: width * 0.9,
+        alignSelf: 'center',
     },
     title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#fff', // White text
-        marginBottom: 20,
+        fontSize: 28,
+        fontWeight: '600',
+        color: '#fff',
+        textAlign: 'center',
+        marginBottom: 30,
+        fontFamily: 'sans-serif-medium',
+    },
+    section: {
+        marginBottom: 25,
+    },
+    sectionTitle: {
+        color: '#ddd',
+        fontSize: 16,
+        fontWeight: '500',
+        marginBottom: 15,
+        paddingLeft: 10,
+    },
+    inputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 10,
+        marginBottom: 15,
+        paddingHorizontal: 15,
+    },
+    icon: {
+        marginRight: 10,
     },
     input: {
-        width: '80%',
+        flex: 1,
         height: 50,
-        borderColor: '#444', // Darker border
-        borderWidth: 1,
-        borderRadius: 8,
-        paddingHorizontal: 15,
-        marginBottom: 20,
-        color: '#fff', // White text
-        backgroundColor: '#333', // Dark input background
+        color: '#fff',
+        fontSize: 16,
+    },
+    eyeIcon: {
+        padding: 10,
     },
     button: {
-        width: '80%',
-        height: 50,
-        backgroundColor: '#007bff', // Blue button
-        borderRadius: 8,
-        justifyContent: 'center',
+        marginTop: 20,
+        borderRadius: 10,
+        overflow: 'hidden',
+    },
+    solidButton: {
+        flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 16,
+        backgroundColor: '#667eea', // Solid button color
     },
     buttonText: {
         color: '#fff',
-        fontSize: 16,
-        fontWeight: 'bold',
+        fontSize: 18,
+        fontWeight: '600',
+        marginRight: 10,
+    },
+    buttonIcon: {
+        marginTop: 2,
     },
 });

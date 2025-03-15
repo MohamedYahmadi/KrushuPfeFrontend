@@ -1,17 +1,36 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { RootStackParamList } from './types';
+import axios from 'axios';
+import Icon from 'react-native-vector-icons/FontAwesome'; // Import FontAwesome icons
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 
-export default function Login() {
+const Login: React.FC = () => {
     const navigation = useNavigation<LoginScreenNavigationProp>();
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
-    const handleLogin = () => {
-        // Simulate successful login
-        navigation.navigate('DrawerNavigator');
+    const handleLogin = async () => {
+        try {
+            const response = await axios.post('http://localhost:8080/api/user/login', { email, password });
+            if (response.status === 200 && response.data) {
+                // Logic to handle token and navigation
+                navigation.navigate('Dashboard');
+            } else {
+                alert('Login failed. Please check your credentials.');
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Login failed. Please check your credentials.');
+        }
+    };
+
+    const togglePasswordVisibility = () => {
+        setIsPasswordVisible(!isPasswordVisible);
     };
 
     return (
@@ -28,30 +47,52 @@ export default function Login() {
                 <Text style={styles.welcomeText}>Welcome Back!</Text>
                 <Text style={styles.subtitle}>Please login to continue</Text>
 
-                <TextInput
-                    style={styles.input}
-                    placeholder="Enter your email"
-                    placeholderTextColor="#888"
-                    keyboardType="email-address"
-                />
-                <TextInput
-                    style={styles.input}
-                    placeholder="Enter your password"
-                    placeholderTextColor="#888"
-                    secureTextEntry
-                />
+                {/* Email Input */}
+                <View style={styles.inputContainer}>
+                    <Icon name="envelope" size={20} color="#888" style={styles.icon} />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Enter your email"
+                        placeholderTextColor="#888"
+                        keyboardType="email-address"
+                        value={email}
+                        onChangeText={setEmail}
+                    />
+                </View>
 
+                {/* Password Input */}
+                <View style={styles.inputContainer}>
+                    <Icon name="lock" size={20} color="#888" style={styles.icon} />
+                    <TextInput
+                        style={[styles.input, { flex: 1 }]}
+                        placeholder="Enter your password"
+                        placeholderTextColor="#888"
+                        secureTextEntry={!isPasswordVisible}
+                        value={password}
+                        onChangeText={setPassword}
+                    />
+                    <TouchableOpacity onPress={togglePasswordVisibility} style={styles.eyeIcon}>
+                        <Icon
+                            name={isPasswordVisible ? 'eye-slash' : 'eye'}
+                            size={20}
+                            color="#888"
+                        />
+                    </TouchableOpacity>
+                </View>
+
+                {/* Login Button */}
                 <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
                     <Text style={styles.loginButtonText}>Login</Text>
                 </TouchableOpacity>
 
+                {/* Forgot Password Link */}
                 <TouchableOpacity style={styles.forgotPassword} onPress={() => navigation.navigate('ResetPassword')}>
                     <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
                 </TouchableOpacity>
             </View>
         </View>
     );
-}
+};
 
 const styles = StyleSheet.create({
     container: {
@@ -93,16 +134,25 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginBottom: 30,
     },
-    input: {
-        width: '100%',
-        height: 50,
-        borderColor: '#444',
-        borderWidth: 1,
-        borderRadius: 8,
-        paddingHorizontal: 15,
+    inputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 10,
         marginBottom: 20,
+        paddingHorizontal: 15,
+    },
+    icon: {
+        marginRight: 10,
+    },
+    input: {
+        height: 50,
         color: '#fff',
-        backgroundColor: '#333',
+        fontSize: 16,
+        flex: 1,
+    },
+    eyeIcon: {
+        padding: 10,
     },
     loginButton: {
         width: '100%',
@@ -127,3 +177,5 @@ const styles = StyleSheet.create({
         fontSize: 14,
     },
 });
+
+export default Login;

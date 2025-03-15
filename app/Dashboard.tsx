@@ -1,8 +1,7 @@
-// HomeDrawer.tsx
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
-export default function HomeDrawer() {
+export default function Dashboard() {
     return (
         <View style={styles.container}>
             <Text style={styles.welcomeText}> Welcome, John Doe!</Text>
