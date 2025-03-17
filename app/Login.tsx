@@ -47,7 +47,7 @@ const Login: React.FC = () => {
   const handleLogin = async () => {
     try {
       const response = await axios.post(
-        "http://localhost:8080/api/user/login",
+        "http://192.168.1.108:8080/api/user/login",
         { email, password }
       );
       if (response.status === 200) {

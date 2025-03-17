@@ -72,7 +72,7 @@ export default function Profile({ route }) {
   const fetchUserProfile = async (userId) => {
     try {
       const response = await axios.get<User>(
-        `http://localhost:8080/api/user/profile/${userId}`
+        `http://192.168.1.108:8080/api/user/profile/${userId}`
       );
       setUser(response.data);
     } catch (err) {
