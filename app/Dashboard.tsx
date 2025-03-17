@@ -1,24 +1,22 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
+import DrawerNavigator from "./DrawerNavigator";
+import { createDrawerNavigator } from "@react-navigation/drawer";
+import Profile from "./Profile";
+import CreateAccount from "./CreateAccount";
+import Home from "./Home";
+import { DashBoardHome } from "./DashboardHome";
+import UsersList from "./UsersList";
+
+const Drawer = createDrawerNavigator();
 
 export default function Dashboard() {
-    return (
-        <View style={styles.container}>
-            <Text style={styles.welcomeText}> Welcome, John Doe!</Text>
-        </View>
-    );
+  return (
+    <Drawer.Navigator initialRouteName="Home">
+      <Drawer.Screen name="Home" component={DashBoardHome} />
+      <Drawer.Screen name="UsersList" component={UsersList} />
+      <Drawer.Screen name="Profile" component={Profile} />
+      <Drawer.Screen name="CreateAccount" component={CreateAccount} />
+    </Drawer.Navigator>
+  );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#1a1a1a',
-    },
-    welcomeText: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#fff',
-    },
-});
