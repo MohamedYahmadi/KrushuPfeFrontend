@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -11,17 +11,17 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialIcons } from "@expo/vector-icons";
 import axios from "axios";
-import { User } from "./Entites/User"; // Make sure the path is correct
+import { User } from "./Entites/User";
 import * as SecureStore from "expo-secure-store";
-import { useNavigation } from "expo-router";
-import { NativeStackNavigationProp } from "react-native-screens/lib/typescript/native-stack/types";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "./types";
 import { ProfileUpdateModal } from "./Components/ProfileUpdateModal";
 import { UserProfileUpdateModal } from "./Components/UserProfileUpdateModal";
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
-  "Login"
+    RootStackParamList,
+    "Login"
 >;
 
 export default function Profile({ route }) {
@@ -31,6 +31,8 @@ export default function Profile({ route }) {
 
   const [userModal, setUserModal] = useState(false);
   const [adminModal, setAdminModal] = useState(false);
+
+  const navigation = useNavigation<LoginScreenNavigationProp>();
 
   const openModificationModal = () => {
     let role = "";
@@ -43,8 +45,6 @@ export default function Profile({ route }) {
     if (role == "Admin") setAdminModal(true);
     else setUserModal(true);
   };
-
-  const navigation = useNavigation<LoginScreenNavigationProp>();
 
   const retrieveData = () => {
     if (Platform.OS === "web") {
@@ -72,7 +72,7 @@ export default function Profile({ route }) {
   const fetchUserProfile = async (userId) => {
     try {
       const response = await axios.get<User>(
-        `http://192.168.1.108:8080/api/user/profile/${userId}`
+          `http://192.168.1.115:8080/api/user/profile/${userId}`
       );
       setUser(response.data);
     } catch (err) {
@@ -87,104 +87,110 @@ export default function Profile({ route }) {
   if (error) return <Text>Error: {error}</Text>;
 
   return (
-    <LinearGradient colors={["#1a1a1a", "#333"]} style={styles.container}>
-      <View style={styles.profileHeader}>
-        <Image
-          source={{ uri: "https://via.placeholder.com/150" }} // Placeholder image URL
-          style={styles.profileImage}
-        />
-        <Text style={styles.profileName}>
-          {user?.firstName} {user?.lastName}
-        </Text>
-        <Text style={styles.profileEmail}>{user?.email}</Text>
-      </View>
+      <LinearGradient colors={["#1a1a1a", "#333"]} style={styles.container}>
+        <View style={styles.profileHeader}>
+          <Image
+              source={{ uri: "https://via.placeholder.com/150" }} // Placeholder image URL
+              style={styles.profileImage}
+          />
+          <Text style={styles.profileName}>
+            {user?.firstName} {user?.lastName}
+          </Text>
+          <Text style={styles.profileEmail}>{user?.email}</Text>
+        </View>
 
-      <View style={styles.card}>
-        {user && (
-          <>
-            <View style={styles.infoContainer}>
-              <MaterialIcons
-                name="person"
-                size={24}
-                color="#ccc"
-                style={styles.icon}
-              />
-              <Text style={styles.label}>First Name</Text>
-              <Text style={styles.value}>{user.firstName}</Text>
-            </View>
-            <View style={styles.infoContainer}>
-              <MaterialIcons
-                name="person-outline"
-                size={24}
-                color="#ccc"
-                style={styles.icon}
-              />
-              <Text style={styles.label}>Last Name</Text>
-              <Text style={styles.value}>{user.lastName}</Text>
-            </View>
-            <View style={styles.infoContainer}>
-              <MaterialIcons
-                name="email"
-                size={24}
-                color="#ccc"
-                style={styles.icon}
-              />
-              <Text style={styles.label}>Email</Text>
-              <Text style={styles.value}>{user.email}</Text>
-            </View>
-            <View style={styles.infoContainer}>
-              <MaterialIcons
-                name="group"
-                size={24}
-                color="#ccc"
-                style={styles.icon}
-              />
-              <Text style={styles.label}>Role</Text>
-              <Text style={styles.value}>{user.role}</Text>
-            </View>
-            <View style={styles.infoContainer}>
-              <MaterialIcons
-                name="assignment"
-                size={24}
-                color="#ccc"
-                style={styles.icon}
-              />
-              <Text style={styles.label}>Registration Number</Text>
-              <Text style={styles.value}>{user.registrationNumber}</Text>
-            </View>
-            {user.department && (
-              <View style={styles.infoContainer}>
-                <MaterialIcons
-                  name="location-on"
-                  size={24}
-                  color="#ccc"
-                  style={styles.icon}
+        <View style={styles.card}>
+          {user && (
+              <>
+                <View style={styles.infoContainer}>
+                  <MaterialIcons
+                      name="person"
+                      size={24}
+                      color="#ccc"
+                      style={styles.icon}
+                  />
+                  <Text style={styles.label}>First Name</Text>
+                  <Text style={styles.value}>{user.firstName}</Text>
+                </View>
+                <View style={styles.infoContainer}>
+                  <MaterialIcons
+                      name="person-outline"
+                      size={24}
+                      color="#ccc"
+                      style={styles.icon}
+                  />
+                  <Text style={styles.label}>Last Name</Text>
+                  <Text style={styles.value}>{user.lastName}</Text>
+                </View>
+                <View style={styles.infoContainer}>
+                  <MaterialIcons
+                      name="email"
+                      size={24}
+                      color="#ccc"
+                      style={styles.icon}
+                  />
+                  <Text style={styles.label}>Email</Text>
+                  <Text style={styles.value}>{user.email}</Text>
+                </View>
+                <View style={styles.infoContainer}>
+                  <MaterialIcons
+                      name="group"
+                      size={24}
+                      color="#ccc"
+                      style={styles.icon}
+                  />
+                  <Text style={styles.label}>Role</Text>
+                  <Text style={styles.value}>{user.role}</Text>
+                </View>
+                <View style={styles.infoContainer}>
+                  <MaterialIcons
+                      name="assignment"
+                      size={24}
+                      color="#ccc"
+                      style={styles.icon}
+                  />
+                  <Text style={styles.label}>Registration Number</Text>
+                  <Text style={styles.value}>{user.registrationNumber}</Text>
+                </View>
+                {user.department && (
+                    <View style={styles.infoContainer}>
+                      <MaterialIcons
+                          name="location-on"
+                          size={24}
+                          color="#ccc"
+                          style={styles.icon}
+                      />
+                      <Text style={styles.label}>Department</Text>
+                      <Text style={styles.value}>{user.department}</Text>
+                    </View>
+                )}
+
+                <Button
+                    title="Modify profile informations"
+                    onPress={openModificationModal}
                 />
-                <Text style={styles.label}>Department</Text>
-                <Text style={styles.value}>{user.department}</Text>
-              </View>
-            )}
 
-            <Button
-              title="Modify profile informations"
-              onPress={openModificationModal}
-            />
-          </>
-        )}
-      </View>
+                {/* Add a button to navigate to the ChangePassword screen */}
+                <Button
+                    title="Change Password"
+                    onPress={() => navigation.navigate("ChangePassword")}
+                />
+              </>
+          )}
+        </View>
 
-      <ProfileUpdateModal
-        visible={adminModal}
-        user={user}
-        onClose={() => setAdminModal(false)}
-      />
+        <ProfileUpdateModal
+            visible={adminModal}
+            user={user}
+            onClose={() => setAdminModal(false)}
+        />
 
-      <UserProfileUpdateModal
-        visible={userModal}
-        user={user}
-        onClose={() => setUserModal(false)}
-      />
-    </LinearGradient>
+        <UserProfileUpdateModal
+            visible={userModal}
+            user={user}
+            onClose={() => setUserModal(false)}
+        />
+      </LinearGradient>
   );
 }
 

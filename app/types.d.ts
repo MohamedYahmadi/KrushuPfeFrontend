@@ -6,4 +6,6 @@ export type RootStackParamList = {
   Profile: number;
   DrawerNavigator: undefined;
   Dashboard: undefined;
+  ChangePassword : undefined;
+
 };

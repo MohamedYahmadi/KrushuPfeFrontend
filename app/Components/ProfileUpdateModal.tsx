@@ -12,8 +12,6 @@ import {
   KeyboardAvoidingView,
 } from "react-native";
 
-import * as SecureStore from "expo-secure-store";
-
 export function ProfileUpdateModal(props) {
   const [data, setData] = useState({
     firstName: props.user.firstName,
@@ -23,121 +21,96 @@ export function ProfileUpdateModal(props) {
     department: props.user.department,
   });
 
-  const retrieveId = () => {
-    if (Platform.OS === "web") {
-      let userId = localStorage.getItem("userId");
-      return { userId };
-    } else {
-      let userId = SecureStore.getItem("userId");
-
-      return { userId };
-    }
-  };
-
   const submitChanges = () => {
-    console.log(data);
-
-    let id = retrieveId().userId;
-
-    axios
-      .put("http://localhost:8080/api/admin/update-profile/" + id, data)
-      .then(() => {
-        props.onClose();
-      });
+    props.onSubmit(data); // Call the onSubmit prop with the updated data
   };
 
   return (
-    <View style={styles.container}>
-      <Modal visible={props.visible} animationType="slide" transparent={true}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.keyboardAvoidingView}
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <View style={styles.header}>
-                <Text style={styles.title}>Admin profile update</Text>
-                <TouchableOpacity>
-                  <Text style={styles.closeButton} onPress={props.onClose}>
-                    ✕
-                  </Text>
-                </TouchableOpacity>
+      <View style={styles.container}>
+        <Modal visible={props.visible} animationType="slide" transparent={true}>
+          <KeyboardAvoidingView
+              behavior={Platform.OS === "ios" ? "padding" : "height"}
+              style={styles.keyboardAvoidingView}
+          >
+            <View style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                <View style={styles.header}>
+                  <Text style={styles.title}>Update User Profile</Text>
+                  <TouchableOpacity>
+                    <Text style={styles.closeButton} onPress={props.onClose}>
+                      ✕
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView style={styles.formContainer}>
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>First name</Text>
+                    <TextInput
+                        style={styles.input}
+                        value={data.firstName}
+                        onChangeText={(value) =>
+                            setData((old) => ({ ...old, firstName: value }))
+                        }
+                    />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Last name</Text>
+                    <TextInput
+                        style={styles.input}
+                        value={data.lastName}
+                        onChangeText={(value) =>
+                            setData((old) => ({ ...old, lastName: value }))
+                        }
+                    />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Email</Text>
+                    <TextInput
+                        style={styles.input}
+                        value={data.email}
+                        onChangeText={(value) =>
+                            setData((old) => ({ ...old, email: value }))
+                        }
+                    />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Registration number</Text>
+                    <TextInput
+                        style={styles.input}
+                        value={data.registrationNumber}
+                        onChangeText={(value) =>
+                            setData((old) => ({ ...old, registrationNumber: value }))
+                        }
+                    />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Department</Text>
+                    <TextInput
+                        style={styles.input}
+                        value={data.department}
+                        onChangeText={(value) =>
+                            setData((old) => ({ ...old, department: value }))
+                        }
+                    />
+                  </View>
+
+                  <TouchableOpacity
+                      style={styles.submitButton}
+                      onPress={submitChanges}
+                  >
+                    <Text style={styles.submitButtonText}>Submit</Text>
+                  </TouchableOpacity>
+                </ScrollView>
               </View>
-
-              <ScrollView style={styles.formContainer}>
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>First name</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={data.firstName}
-                    onChangeText={(value) =>
-                      setData((old) => ({ ...old, firstName: value }))
-                    }
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Last name</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={data.lastName}
-                    onChangeText={(value) =>
-                      setData((old) => ({ ...old, lastName: value }))
-                    }
-                    keyboardType="email-address"
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Email</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={data.email}
-                    onChangeText={(value) =>
-                      setData((old) => ({ ...old, email: value }))
-                    }
-                    placeholder="john@example.com"
-                    placeholderTextColor="#999"
-                    keyboardType="email-address"
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Registration number</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={data.registrationNumber}
-                    onChangeText={(value) =>
-                      setData((old) => ({ ...old, registrationNumber: value }))
-                    }
-                    keyboardType="email-address"
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Departement</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={data.department}
-                    onChangeText={(value) =>
-                      setData((old) => ({ ...old, department: value }))
-                    }
-                    keyboardType="email-address"
-                  />
-                </View>
-
-                <TouchableOpacity
-                  style={styles.submitButton}
-                  onPress={submitChanges}
-                >
-                  <Text style={styles.submitButtonText}>Submit</Text>
-                </TouchableOpacity>
-              </ScrollView>
             </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-    </View>
+          </KeyboardAvoidingView>
+        </Modal>
+      </View>
   );
 }
 
@@ -146,18 +119,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-  },
-  openButton: {
-    backgroundColor: "#007AFF",
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 25,
-    elevation: 3,
-  },
-  openButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
   },
   keyboardAvoidingView: {
     flex: 1,
@@ -207,15 +168,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 12,
     fontSize: 16,
-    color: "#333",
-  },
-  pickerContainer: {
-    backgroundColor: "#f5f5f5",
-    borderRadius: 10,
-    overflow: "hidden",
-  },
-  picker: {
-    height: 50,
     color: "#333",
   },
   submitButton: {

@@ -13,19 +13,21 @@ export default function CreateAccount() {
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
     const [teamName, setTeamName] = useState('');
     const [registrationNumber, setRegistrationNumber] = useState('');
+    const [department, setDepartment] = useState(''); // New state for department
 
     const handleSignUp = async () => {
         try {
-            const response = await axios.post('http://192.168.1.108:8080/api/admin/create-user', {
+            const response = await axios.post('http://192.168.1.115:8080/api/admin/create-user', {
                 firstName,
                 lastName,
                 email,
                 password,
                 teamName,
                 registrationNumber,
+                department, // Include department in the request
                 role: 'TEAM_MEMBER', // Default role (if still needed)
             });
-            if (response.status === 200 && response.data === "User.ts Account Created Successfully") {
+            if (response.status === 200) {
                 alert('User.ts account created successfully!');
             } else {
                 alert('Failed to create user account.');
@@ -126,6 +128,17 @@ export default function CreateAccount() {
                                 placeholderTextColor="#888"
                                 value={registrationNumber}
                                 onChangeText={setRegistrationNumber}
+                            />
+                        </View>
+                        {/* Department Input */}
+                        <View style={styles.inputContainer}>
+                            <Icon name="building-o" size={18} color="#888" style={styles.icon} />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Department"
+                                placeholderTextColor="#888"
+                                value={department}
+                                onChangeText={setDepartment}
                             />
                         </View>
                     </View>

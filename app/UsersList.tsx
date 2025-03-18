@@ -8,10 +8,12 @@ import {
   ActivityIndicator,
   RefreshControl,
   TextInput,
+  Alert,
 } from "react-native";
 import axios from "axios";
 import { User } from "./Entites/User"; // Import the User interface
 import Icon from "react-native-vector-icons/MaterialIcons"; // Import icons
+import { ProfileUpdateModal } from "./Components/ProfileUpdateModal";
 
 const UsersList = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -19,6 +21,8 @@ const UsersList = () => {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedUser, setSelectedUser] = useState<User | null>(null); // Track the selected user for editing
+  const [isModalVisible, setIsModalVisible] = useState(false); // Control modal visibility
 
   useEffect(() => {
     fetchUsers();
@@ -27,7 +31,7 @@ const UsersList = () => {
   const fetchUsers = async () => {
     try {
       const response = await axios.get<User[]>(
-          "http://192.168.1.108:8080/api/admin/all-users"
+          "http://192.168.1.115:8080/api/admin/all-users"
       );
       if (response.status === 200) {
         setUsers(response.data);
@@ -46,6 +50,59 @@ const UsersList = () => {
   const onRefresh = () => {
     setRefreshing(true);
     fetchUsers();
+  };
+
+  const deleteUser = async (userId: number) => {
+    try {
+      const response = await axios.delete(
+          `http://192.168.1.115:8080/api/admin/delete-user/${userId}`
+      );
+      if (response.status === 200) {
+        // Remove the deleted user from the local state
+        setUsers(users.filter((user) => user.id !== userId));
+        Alert.alert("Success", "User deleted successfully");
+      } else {
+        Alert.alert("Error", "Failed to delete user");
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "An error occurred while deleting the user");
+    }
+  };
+
+  const confirmDelete = (userId: number) => {
+    Alert.alert(
+        "Delete User",
+        "Are you sure you want to delete this user?",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Delete", onPress: () => deleteUser(userId), style: "destructive" },
+        ]
+    );
+  };
+
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user); // Set the selected user for editing
+    setIsModalVisible(true); // Open the modal
+  };
+
+  const handleUpdateUser = async (updatedData: any) => {
+    try {
+      const response = await axios.put(
+          `http://192.168.1.115:8080/api/admin/update-user-profile/${selectedUser?.id}`,
+          updatedData
+      );
+      if (response.status === 200) {
+        Alert.alert("Success", "User updated successfully");
+        fetchUsers(); // Refresh the user list
+        setIsModalVisible(false); // Close the modal
+      } else {
+        Alert.alert("Error", "Failed to update user");
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "An error occurred while updating the user");
+    }
   };
 
   const filteredUsers = users.filter(
@@ -96,9 +153,20 @@ const UsersList = () => {
                         </Text>
                     )}
                   </View>
-                  <TouchableOpacity style={styles.deleteButton}>
-                    <Icon name="delete" size={24} color="#ff4444" />
-                  </TouchableOpacity>
+                  <View style={styles.actions}>
+                    <TouchableOpacity
+                        style={styles.editButton}
+                        onPress={() => handleEditUser(item)}
+                    >
+                      <Icon name="edit" size={24} color="#007AFF" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.deleteButton}
+                        onPress={() => confirmDelete(item.id)}
+                    >
+                      <Icon name="delete" size={24} color="#ff4444" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
             )}
             keyExtractor={(item) => item.id.toString()}
@@ -106,6 +174,16 @@ const UsersList = () => {
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }
         />
+
+        {/* Update User Modal */}
+        {selectedUser && (
+            <ProfileUpdateModal
+                visible={isModalVisible}
+                onClose={() => setIsModalVisible(false)}
+                user={selectedUser}
+                onSubmit={handleUpdateUser}
+            />
+        )}
       </View>
   );
 };
@@ -179,6 +257,14 @@ const styles = StyleSheet.create({
   department: {
     fontSize: 14,
     color: "#888",
+  },
+  actions: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  editButton: {
+    padding: 8,
+    marginRight: 8,
   },
   deleteButton: {
     padding: 8,
