@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
@@ -13,11 +16,13 @@ import { RootStackParamList } from "./types";
 import axios from "axios";
 import Icon from "react-native-vector-icons/FontAwesome";
 import * as SecureStore from "expo-secure-store";
-import { Platform } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+
+const { width, height } = Dimensions.get("window");
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
-  "Login"
+    RootStackParamList,
+    "Login"
 >;
 
 const Login: React.FC = () => {
@@ -25,7 +30,6 @@ const Login: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const [saved, setSaved] = useState("nothing");
 
   const saveCredentials = async (token, id, role) => {
     if (Platform.OS === "web") {
@@ -47,14 +51,14 @@ const Login: React.FC = () => {
   const handleLogin = async () => {
     try {
       const response = await axios.post(
-        "http://192.168.1.115:8080/api/user/login",
-        { email, password }
+          "http://172.20.10.3:8080/api/user/login",
+          { email, password }
       );
       if (response.status === 200) {
         saveCredentials(
-          response.data.token,
-          String(response.data.id),
-          response.data.role
+            response.data.token,
+            String(response.data.id),
+            response.data.role
         );
         navigation.navigate("Dashboard");
       } else {
@@ -71,68 +75,77 @@ const Login: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.logoContainer}>
-        <Image
-          source={require("../assets/images/img.png")}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-      </View>
-
-      <View style={styles.loginForm}>
-        <Text style={styles.welcomeText}>Welcome Back!</Text>
-        <Text style={styles.subtitle}>Please login to continue</Text>
-        {/* Email Input */}
-        <View style={styles.inputContainer}>
-          <Icon name="envelope" size={20} color="#888" style={styles.icon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your email"
-            placeholderTextColor="#888"
-            keyboardType="email-address"
-            value={email}
-            onChangeText={setEmail}
-          />
-        </View>
-
-        {/* Password Input */}
-        <View style={styles.inputContainer}>
-          <Icon name="lock" size={20} color="#888" style={styles.icon} />
-          <TextInput
-            style={[styles.input, { flex: 1 }]}
-            placeholder="Enter your password"
-            placeholderTextColor="#888"
-            secureTextEntry={!isPasswordVisible}
-            value={password}
-            onChangeText={setPassword}
-          />
-          <TouchableOpacity
-            onPress={togglePasswordVisibility}
-            style={styles.eyeIcon}
-          >
-            <Icon
-              name={isPasswordVisible ? "eye-slash" : "eye"}
-              size={20}
-              color="#888"
-            />
-          </TouchableOpacity>
-        </View>
-
-        {/* Login Button */}
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-          <Text style={styles.loginButtonText}>Login</Text>
-        </TouchableOpacity>
-
-        {/* Forgot Password Link */}
-        <TouchableOpacity
-          style={styles.forgotPassword}
-          onPress={() => navigation.navigate("ResetPassword")}
+      <LinearGradient
+          colors={["#1a1a1a", "#333"]} // Dark gradient background
+          style={styles.container}
+      >
+        <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={styles.keyboardAvoidingView}
         >
-          <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+          <View style={styles.content}>
+            {/* Logo in the center */}
+            <Image
+                source={require("../assets/images/img.png")} // Replace with your logo
+                style={styles.logo}
+                resizeMode="contain"
+            />
+
+            {/* Welcome Text */}
+            <Text style={styles.welcomeText}>Welcome Back!</Text>
+            <Text style={styles.subtitle}>Please login to continue</Text>
+
+            {/* Email Input */}
+            <View style={styles.inputContainer}>
+              <Icon name="envelope" size={20} color="#888" style={styles.icon} />
+              <TextInput
+                  style={styles.input}
+                  placeholder="Enter your email"
+                  placeholderTextColor="#888"
+                  keyboardType="email-address"
+                  value={email}
+                  onChangeText={setEmail}
+              />
+            </View>
+
+            {/* Password Input */}
+            <View style={styles.inputContainer}>
+              <Icon name="lock" size={20} color="#888" style={styles.icon} />
+              <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  placeholder="Enter your password"
+                  placeholderTextColor="#888"
+                  secureTextEntry={!isPasswordVisible}
+                  value={password}
+                  onChangeText={setPassword}
+              />
+              <TouchableOpacity
+                  onPress={togglePasswordVisibility}
+                  style={styles.eyeIcon}
+              >
+                <Icon
+                    name={isPasswordVisible ? "eye-slash" : "eye"}
+                    size={20}
+                    color="#888"
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Login Button */}
+            <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+              <Text style={styles.loginButtonText}>Login</Text>
+            </TouchableOpacity>
+
+            {/* Forgot Password Link */}
+            <TouchableOpacity
+                style={styles.forgotPassword}
+                onPress={() => navigation.navigate("ResetPassword")}
+            >
+              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </LinearGradient>
   );
 };
 
@@ -141,27 +154,21 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#1a1a1a",
   },
-  logoContainer: {
-    position: "absolute",
-    top: 40,
-    left: 20,
+  keyboardAvoidingView: {
+    flex: 1,
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  content: {
+    width: "90%",
+    alignItems: "center",
   },
   logo: {
-    width: 100,
-    height: 100,
-  },
-  loginForm: {
-    width: "90%",
-    backgroundColor: "#2a2a2a",
-    borderRadius: 15,
-    padding: 25,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 10,
+    width: 150,
+    height: 150,
+    marginBottom: 20,
   },
   welcomeText: {
     fontSize: 28,
@@ -183,6 +190,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 20,
     paddingHorizontal: 15,
+    width: "100%",
   },
   icon: {
     marginRight: 10,
@@ -200,14 +208,19 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 50,
     backgroundColor: "#007bff",
-    borderRadius: 8,
+    borderRadius: 25,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 20,
+    shadowColor: "#007bff",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
   },
   loginButtonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
   },
   forgotPassword: {

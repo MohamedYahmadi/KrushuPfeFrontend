@@ -17,7 +17,7 @@ export default function CreateAccount() {
 
     const handleSignUp = async () => {
         try {
-            const response = await axios.post('http://192.168.1.115:8080/api/admin/create-user', {
+            const response = await axios.post('http://172.20.10.3:8080/api/admin/create-user', {
                 firstName,
                 lastName,
                 email,

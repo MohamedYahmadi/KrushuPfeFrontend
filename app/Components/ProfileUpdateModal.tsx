@@ -11,6 +11,7 @@ import {
   Platform,
   KeyboardAvoidingView,
 } from "react-native";
+import * as SecureStore from "expo-secure-store";
 
 export function ProfileUpdateModal(props) {
   const [data, setData] = useState({
@@ -21,8 +22,30 @@ export function ProfileUpdateModal(props) {
     department: props.user.department,
   });
 
+  const retrieveId = () => {
+    if (Platform.OS === "web") {
+      let userId = localStorage.getItem("userId");
+      let token = localStorage.getItem("token");
+      return { userId, token };
+    } else {
+      let userId = SecureStore.getItem("userId");
+      let token = SecureStore.getItem("token");
+      return { userId, token };
+    }
+  };
+
   const submitChanges = () => {
-    props.onSubmit(data); // Call the onSubmit prop with the updated data
+    let { userId, token } = retrieveId();
+
+    axios
+        .put(`http://172.20.10.3:8080/api/admin/update-profile/${userId}`, data)
+        .then(() => {
+          props.onClose();
+          props.onSubmit(data); // Call the onSubmit prop with the updated data
+        })
+        .catch((error) => {
+          console.error("Error updating profile:", error);
+        });
   };
 
   return (

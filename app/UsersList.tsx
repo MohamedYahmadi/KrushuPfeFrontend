@@ -9,11 +9,13 @@ import {
   RefreshControl,
   TextInput,
   Alert,
+  Image,
 } from "react-native";
 import axios from "axios";
-import { User } from "./Entites/User"; // Import the User interface
-import Icon from "react-native-vector-icons/MaterialIcons"; // Import icons
-import { ProfileUpdateModal } from "./Components/ProfileUpdateModal";
+import { User } from "./Entites/User";
+import Icon from "react-native-vector-icons/MaterialIcons";
+import EditUserModal from "./Components/EditUserModal"; // Import the new modal
+import { LinearGradient } from "expo-linear-gradient";
 
 const UsersList = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -21,8 +23,8 @@ const UsersList = () => {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedUser, setSelectedUser] = useState<User | null>(null); // Track the selected user for editing
-  const [isModalVisible, setIsModalVisible] = useState(false); // Control modal visibility
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -31,7 +33,7 @@ const UsersList = () => {
   const fetchUsers = async () => {
     try {
       const response = await axios.get<User[]>(
-          "http://192.168.1.115:8080/api/admin/all-users"
+          "http://172.20.10.3:8080/api/admin/all-users"
       );
       if (response.status === 200) {
         setUsers(response.data);
@@ -55,12 +57,12 @@ const UsersList = () => {
   const deleteUser = async (userId: number) => {
     try {
       const response = await axios.delete(
-          `http://192.168.1.115:8080/api/admin/delete-user/${userId}`
+          `http://172.20.10.3:8080/api/admin/delete-user/${userId}`
       );
       if (response.status === 200) {
-        // Remove the deleted user from the local state
         setUsers(users.filter((user) => user.id !== userId));
         Alert.alert("Success", "User deleted successfully");
+        fetchUsers();
       } else {
         Alert.alert("Error", "Failed to delete user");
       }
@@ -82,20 +84,30 @@ const UsersList = () => {
   };
 
   const handleEditUser = (user: User) => {
-    setSelectedUser(user); // Set the selected user for editing
-    setIsModalVisible(true); // Open the modal
+    setSelectedUser(user);
+    setIsModalVisible(true);
   };
 
   const handleUpdateUser = async (updatedData: any) => {
     try {
+      if (!selectedUser || !selectedUser.id) {
+        Alert.alert("Error", "No user selected for update.");
+        return;
+      }
+
       const response = await axios.put(
-          `http://192.168.1.115:8080/api/admin/update-user-profile/${selectedUser?.id}`,
+          `http://172.20.10.3:8080/api/admin/update-user-profile/${selectedUser.id}`,
           updatedData
       );
+
       if (response.status === 200) {
+        const updatedUsers = users.map((user) =>
+            user.id === selectedUser.id ? { ...user, ...updatedData } : user
+        );
+        setUsers(updatedUsers);
+
         Alert.alert("Success", "User updated successfully");
-        fetchUsers(); // Refresh the user list
-        setIsModalVisible(false); // Close the modal
+        setIsModalVisible(false);
       } else {
         Alert.alert("Error", "Failed to update user");
       }
@@ -129,10 +141,11 @@ const UsersList = () => {
   }
 
   return (
-      <View style={styles.container}>
+      <LinearGradient colors={["#1a1a1a", "#333"]} style={styles.container}>
         <TextInput
             style={styles.searchBar}
             placeholder="Search users..."
+            placeholderTextColor="#888"
             value={searchQuery}
             onChangeText={setSearchQuery}
         />
@@ -140,6 +153,10 @@ const UsersList = () => {
             data={filteredUsers}
             renderItem={({ item }) => (
                 <View style={styles.card}>
+                  <Image
+                      source={require("../assets/images/user-icon.png")}
+                      style={styles.userIcon}
+                  />
                   <View style={styles.cardContent}>
                     <Text style={styles.name}>
                       {item.firstName} {item.lastName}
@@ -175,23 +192,22 @@ const UsersList = () => {
             }
         />
 
-        {/* Update User Modal */}
+        {/* New Modal */}
         {selectedUser && (
-            <ProfileUpdateModal
+            <EditUserModal
                 visible={isModalVisible}
                 onClose={() => setIsModalVisible(false)}
                 user={selectedUser}
                 onSubmit={handleUpdateUser}
             />
         )}
-      </View>
+      </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
     padding: 16,
   },
   centered: {
@@ -204,31 +220,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   searchBar: {
-    backgroundColor: "#fff",
+    backgroundColor: "rgba(255,255,255,0.1)",
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 8,
     marginBottom: 16,
     fontSize: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
+    color: "#fff",
   },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: "rgba(255,255,255,0.1)",
     borderRadius: 8,
     padding: 16,
     marginBottom: 16,
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
+  },
+  userIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 16,
   },
   cardContent: {
     flex: 1,
@@ -237,11 +254,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 4,
-    color: "#333",
+    color: "#fff",
   },
   email: {
     fontSize: 14,
-    color: "#666",
+    color: "#bbb",
     marginBottom: 4,
   },
   role: {
@@ -251,7 +268,7 @@ const styles = StyleSheet.create({
   },
   registration: {
     fontSize: 14,
-    color: "#444",
+    color: "#bbb",
     marginBottom: 4,
   },
   department: {

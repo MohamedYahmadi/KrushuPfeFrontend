@@ -42,7 +42,7 @@ export default function Profile({ route }) {
       role = SecureStore.getItem("role");
     }
 
-    if (role == "Admin") setAdminModal(true);
+    if (role === "Admin") setAdminModal(true);
     else setUserModal(true);
   };
 
@@ -54,7 +54,6 @@ export default function Profile({ route }) {
     } else {
       let userId = SecureStore.getItem("userId");
       let token = SecureStore.getItem("token");
-
       return { userId, token };
     }
   };
@@ -72,7 +71,7 @@ export default function Profile({ route }) {
   const fetchUserProfile = async (userId) => {
     try {
       const response = await axios.get<User>(
-          `http://192.168.1.115:8080/api/user/profile/${userId}`
+          `http://172.20.10.3:8080/api/user/profile/${userId}`
       );
       setUser(response.data);
     } catch (err) {
@@ -80,6 +79,37 @@ export default function Profile({ route }) {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleProfileUpdate = async (updatedData) => {
+    try {
+      const data = retrieveData();
+      const role = data.role;
+
+      let response;
+      if (role === "Admin") {
+        // Update admin profile
+        response = await axios.put(
+            `http://172.20.10.3:8080/api/admin/update-profile/${data.userId}`,
+            updatedData
+        );
+      } else {
+        // Update user profile
+        response = await axios.put(
+            `http://172.20.10.3:8080/api/user/update-profile/${data.userId}`,
+            updatedData
+        );
+      }
+
+      // Refresh the user profile data
+      fetchUserProfile(data.userId);
+
+      // Close the modals
+      setAdminModal(false);
+      setUserModal(false);
+    } catch (err) {
+      console.error("Error updating profile:", err);
     }
   };
 
@@ -183,12 +213,14 @@ export default function Profile({ route }) {
             visible={adminModal}
             user={user}
             onClose={() => setAdminModal(false)}
+            onSubmit={handleProfileUpdate}
         />
 
         <UserProfileUpdateModal
             visible={userModal}
             user={user}
             onClose={() => setUserModal(false)}
+            onSubmit={handleProfileUpdate}
         />
       </LinearGradient>
   );

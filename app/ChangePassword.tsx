@@ -58,7 +58,7 @@ export default function ChangePassword() {
 
         try {
             const response = await axios.post(
-                `http://192.168.1.115:8080/api/user/update-password/${userId}`,
+                `http://172.20.10.3:8080/api/user/update-password/${userId}`,
                 {
                     oldPassword,
                     newPassword,
