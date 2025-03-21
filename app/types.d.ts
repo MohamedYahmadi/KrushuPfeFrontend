@@ -3,9 +3,11 @@ export type RootStackParamList = {
   Login: undefined;
   ResetPassword: undefined;
   CreateAccount: undefined;
-  Profile: number;
+  Profile: undefined;
   DrawerNavigator: undefined;
   Dashboard: undefined;
   ChangePassword : undefined;
+  UsersList : undefined;
+  CreateAdminAccount : undefined;
 
 };

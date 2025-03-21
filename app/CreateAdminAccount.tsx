@@ -1,40 +1,50 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Dimensions } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Dimensions, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import axios from 'axios';
+import { useNavigation } from "@react-navigation/native";
+import { RootStackParamList } from "./types";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+
+type CreateAdminAccountScreenNavigationProp = NativeStackNavigationProp<
+    RootStackParamList,
+    "CreateAdminAccount"
+>;
 
 const { width } = Dimensions.get('window');
 
-export default function CreateAccount() {
+const CreateAdminAccount = () => {
+    const navigation = useNavigation<CreateAdminAccountScreenNavigationProp>();
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-    const [teamName, setTeamName] = useState('');
     const [registrationNumber, setRegistrationNumber] = useState('');
-    const [department, setDepartment] = useState(''); // New state for department
+    const [department, setDepartment] = useState('');
 
-    const handleSignUp = async () => {
+    const handleCreateAdmin = async () => {
         try {
-            const response = await axios.post('http://192.168.1.105:8080/api/admin/create-user', {
+            const response = await axios.post('http://192.168.1.105:8080/api/user/signup-admin', {
                 firstName,
                 lastName,
                 email,
                 password,
-                teamName,
                 registrationNumber,
                 department,
-                role: 'TEAM_MEMBER',
             });
             if (response.status === 200) {
-                alert('User.ts account created successfully!');
+                Alert.alert("Success", "Admin account created successfully!");
+                // Add a 5-second delay before navigating to the Login page
+                setTimeout(() => {
+                    navigation.navigate("Home"); // Navigate back to the login screen
+                }, 5000); // 5000 milliseconds = 5 seconds
             } else {
-                alert('Failed to create user account.');
+                Alert.alert("Error", "Failed to create admin account.");
             }
         } catch (error) {
             console.error(error);
-            alert('An error occurred while creating the user account.');
+            Alert.alert("Error", "An error occurred while creating the admin account.");
         }
     };
 
@@ -46,7 +56,7 @@ export default function CreateAccount() {
         <View style={styles.container}>
             <ScrollView contentContainerStyle={styles.scrollContainer}>
                 <View style={styles.formContainer}>
-                    <Text style={styles.title}>Create New Account</Text>
+                    <Text style={styles.title}>Create Admin Account</Text>
 
                     {/* Personal Information Section */}
                     <View style={styles.section}>
@@ -107,19 +117,9 @@ export default function CreateAccount() {
                         </View>
                     </View>
 
-                    {/* Team Information Section */}
+                    {/* Admin Information Section */}
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Team Information</Text>
-                        <View style={styles.inputContainer}>
-                            <Icon name="users" size={18} color="#888" style={styles.icon} />
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Team Name"
-                                placeholderTextColor="#888"
-                                value={teamName}
-                                onChangeText={setTeamName}
-                            />
-                        </View>
+                        <Text style={styles.sectionTitle}>Admin Information</Text>
                         <View style={styles.inputContainer}>
                             <Icon name="id-card-o" size={16} color="#888" style={styles.icon} />
                             <TextInput
@@ -130,7 +130,6 @@ export default function CreateAccount() {
                                 onChangeText={setRegistrationNumber}
                             />
                         </View>
-                        {/* Department Input */}
                         <View style={styles.inputContainer}>
                             <Icon name="building-o" size={18} color="#888" style={styles.icon} />
                             <TextInput
@@ -143,10 +142,10 @@ export default function CreateAccount() {
                         </View>
                     </View>
 
-                    {/* Sign Up Button */}
-                    <TouchableOpacity style={styles.button} onPress={handleSignUp}>
+                    {/* Create Admin Account Button */}
+                    <TouchableOpacity style={styles.button} onPress={handleCreateAdmin}>
                         <View style={styles.solidButton}>
-                            <Text style={styles.buttonText}>Create Account</Text>
+                            <Text style={styles.buttonText}>Create Admin Account</Text>
                             <Icon name="arrow-right" size={18} color="#fff" style={styles.buttonIcon} />
                         </View>
                     </TouchableOpacity>
@@ -154,7 +153,7 @@ export default function CreateAccount() {
             </ScrollView>
         </View>
     );
-}
+};
 
 const styles = StyleSheet.create({
     container: {
@@ -229,3 +228,5 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
 });
+
+export default CreateAdminAccount;

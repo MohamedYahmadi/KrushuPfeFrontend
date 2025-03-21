@@ -58,7 +58,7 @@ export default function ChangePassword() {
 
         try {
             const response = await axios.post(
-                `http://172.20.10.3:8080/api/user/update-password/${userId}`,
+                `http://192.168.1.105:8080/api/user/update-password/${userId}`,
                 {
                     oldPassword,
                     newPassword,
@@ -68,7 +68,7 @@ export default function ChangePassword() {
 
             if (response.status === 200) {
                 Alert.alert("Success", "Password changed successfully");
-                navigation.navigate("Profile"); // Navigate back to the profile screen
+                navigation.navigate("Profile");
             }
         } catch (error) {
             console.error(error);

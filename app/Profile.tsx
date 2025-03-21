@@ -71,7 +71,7 @@ export default function Profile({ route }) {
   const fetchUserProfile = async (userId) => {
     try {
       const response = await axios.get<User>(
-          `http://172.20.10.3:8080/api/user/profile/${userId}`
+          `http://192.168.1.105:8080/api/user/profile/${userId}`
       );
       setUser(response.data);
     } catch (err) {
@@ -91,13 +91,13 @@ export default function Profile({ route }) {
       if (role === "Admin") {
         // Update admin profile
         response = await axios.put(
-            `http://172.20.10.3:8080/api/admin/update-profile/${data.userId}`,
+            `http://192.168.1.105:8080/api/admin/update-profile/${data.userId}`,
             updatedData
         );
       } else {
         // Update user profile
         response = await axios.put(
-            `http://172.20.10.3:8080/api/user/update-profile/${data.userId}`,
+            `http://192.168.1.105:8080/api/user/update-profile/${data.userId}`,
             updatedData
         );
       }
