@@ -102,10 +102,8 @@ export default function Profile({ route }) {
         );
       }
 
-      // Refresh the user profile data
       fetchUserProfile(data.userId);
 
-      // Close the modals
       setAdminModal(false);
       setUserModal(false);
     } catch (err) {
@@ -120,7 +118,7 @@ export default function Profile({ route }) {
       <LinearGradient colors={["#1a1a1a", "#333"]} style={styles.container}>
         <View style={styles.profileHeader}>
           <Image
-              source={{ uri: "https://via.placeholder.com/150" }} // Placeholder image URL
+              source={{ uri: "https://via.placeholder.com/150" }}
               style={styles.profileImage}
           />
           <Text style={styles.profileName}>
@@ -200,7 +198,6 @@ export default function Profile({ route }) {
                     onPress={openModificationModal}
                 />
 
-                {/* Add a button to navigate to the ChangePassword screen */}
                 <Button
                     title="Change Password"
                     onPress={() => navigation.navigate("ChangePassword")}

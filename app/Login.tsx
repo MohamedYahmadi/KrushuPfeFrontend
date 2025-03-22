@@ -32,8 +32,6 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
-
-
   const saveCredentials = async (token, id, role) => {
     if (Platform.OS === "web") {
       localStorage.setItem("token", token);
@@ -79,7 +77,7 @@ const Login: React.FC = () => {
 
   return (
       <LinearGradient
-          colors={["#1a1a1a", "#333"]} // Dark gradient background
+          colors={["#1a1a1a", "#333"]}
           style={styles.container}
       >
         <KeyboardAvoidingView
@@ -87,18 +85,16 @@ const Login: React.FC = () => {
             style={styles.keyboardAvoidingView}
         >
           <View style={styles.content}>
-            {/* Logo in the center */}
+
             <Image
-                source={require("../assets/images/img.png")} // Replace with your logo
+                source={require("../assets/images/img.png")}
                 style={styles.logo}
                 resizeMode="contain"
             />
 
-            {/* Welcome Text */}
             <Text style={styles.welcomeText}>Welcome Back!</Text>
             <Text style={styles.subtitle}>Please login to continue</Text>
 
-            {/* Email Input */}
             <View style={styles.inputContainer}>
               <Icon name="envelope" size={20} color="#888" style={styles.icon} />
               <TextInput
@@ -111,7 +107,6 @@ const Login: React.FC = () => {
               />
             </View>
 
-            {/* Password Input */}
             <View style={styles.inputContainer}>
               <Icon name="lock" size={20} color="#888" style={styles.icon} />
               <TextInput
@@ -134,15 +129,13 @@ const Login: React.FC = () => {
               </TouchableOpacity>
             </View>
 
-            {/* Login Button */}
             <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
               <Text style={styles.loginButtonText}>Login</Text>
             </TouchableOpacity>
 
-            {/* Forgot Password Link */}
             <TouchableOpacity
                 style={styles.forgotPassword}
-                onPress={() => navigation.navigate("ResetPassword")}
+                onPress={() => navigation.navigate("RequestResetPassword")} // Updated to navigate to RequestResetPassword
             >
               <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
             </TouchableOpacity>

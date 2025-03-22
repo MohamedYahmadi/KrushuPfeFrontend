@@ -24,11 +24,11 @@ export default function Home() {
 
   return (
       <ImageBackground
-          source={require("../assets/images/img.png")} // Replace with your background image
+          source={require("../assets/images/img.png")}
           style={styles.background}
       >
         <LinearGradient
-            colors={["rgba(0, 0, 0, 0.6)", "rgba(0, 0, 0, 0.8)"]} // Dark overlay
+            colors={["rgba(0, 0, 0, 0.6)", "rgba(0, 0, 0, 0.8)"]}
             style={styles.overlay}
         >
           <View style={styles.container}>
@@ -66,30 +66,30 @@ const styles = StyleSheet.create({
   welcomeText: {
     fontSize: 36,
     fontWeight: "bold",
-    color: "#fff", // White text
+    color: "#fff",
     textAlign: "center",
     marginBottom: 10,
-    fontFamily: "sans-serif-medium", // Use a modern font
+    fontFamily: "sans-serif-medium",
   },
   subtitle: {
     fontSize: 16,
-    color: "#ddd", // Light gray text
+    color: "#ddd",
     textAlign: "center",
     marginBottom: 40,
-    fontFamily: "sans-serif", // Use a modern font
+    fontFamily: "sans-serif",
   },
   button: {
     width: "80%",
     height: 50,
-    backgroundColor: "#007bff", // Blue button
-    borderRadius: 25, // Rounded corners
+    backgroundColor: "#007bff",
+    borderRadius: 25,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#007bff", // Button shadow
+    shadowColor: "#007bff",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
-    elevation: 5, // For Android
+    elevation: 5,
   },
   buttonText: {
     color: "#fff",

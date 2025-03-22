@@ -10,7 +10,6 @@ import {
 import Icon from "react-native-vector-icons/MaterialIcons";
 
 const EditUserModal = ({ visible, onClose, user, onSubmit }) => {
-    // State for form fields
     const [firstName, setFirstName] = useState(user.firstName);
     const [lastName, setLastName] = useState(user.lastName);
     const [email, setEmail] = useState(user.email);
@@ -19,7 +18,6 @@ const EditUserModal = ({ visible, onClose, user, onSubmit }) => {
         user.registrationNumber || ""
     );
 
-    // Handle form submission
     const handleSubmit = () => {
         const updatedData = {
             firstName,
@@ -28,14 +26,14 @@ const EditUserModal = ({ visible, onClose, user, onSubmit }) => {
             department,
             registrationNumber,
         };
-        onSubmit(updatedData); // Pass updated data to the parent component
+        onSubmit(updatedData);
     };
 
     return (
         <Modal visible={visible} animationType="slide" transparent={true}>
             <View style={styles.modalOverlay}>
                 <View style={styles.modalContainer}>
-                    {/* Modal Header */}
+
                     <View style={styles.modalHeader}>
                         <Text style={styles.modalTitle}>Edit User Profile</Text>
                         <TouchableOpacity onPress={onClose}>
@@ -43,7 +41,7 @@ const EditUserModal = ({ visible, onClose, user, onSubmit }) => {
                         </TouchableOpacity>
                     </View>
 
-                    {/* Form Fields */}
+
                     <TextInput
                         style={styles.input}
                         placeholder="First Name"
@@ -80,7 +78,7 @@ const EditUserModal = ({ visible, onClose, user, onSubmit }) => {
                         onChangeText={setRegistrationNumber}
                     />
 
-                    {/* Submit Button */}
+
                     <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
                         <Text style={styles.submitButtonText}>Save Changes</Text>
                     </TouchableOpacity>

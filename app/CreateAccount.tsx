@@ -48,7 +48,7 @@ export default function CreateAccount() {
                 <View style={styles.formContainer}>
                     <Text style={styles.title}>Create New Account</Text>
 
-                    {/* Personal Information Section */}
+
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Personal Information</Text>
                         <View style={styles.inputContainer}>
@@ -73,7 +73,6 @@ export default function CreateAccount() {
                         </View>
                     </View>
 
-                    {/* Account Information Section */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Account Information</Text>
                         <View style={styles.inputContainer}>
@@ -107,7 +106,6 @@ export default function CreateAccount() {
                         </View>
                     </View>
 
-                    {/* Team Information Section */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Team Information</Text>
                         <View style={styles.inputContainer}>
@@ -130,7 +128,7 @@ export default function CreateAccount() {
                                 onChangeText={setRegistrationNumber}
                             />
                         </View>
-                        {/* Department Input */}
+
                         <View style={styles.inputContainer}>
                             <Icon name="building-o" size={18} color="#888" style={styles.icon} />
                             <TextInput
@@ -143,7 +141,6 @@ export default function CreateAccount() {
                         </View>
                     </View>
 
-                    {/* Sign Up Button */}
                     <TouchableOpacity style={styles.button} onPress={handleSignUp}>
                         <View style={styles.solidButton}>
                             <Text style={styles.buttonText}>Create Account</Text>
@@ -159,7 +156,7 @@ export default function CreateAccount() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#1a1a1a', // Solid dark background
+        backgroundColor: '#1a1a1a',
     },
     scrollContainer: {
         flexGrow: 1,
@@ -217,7 +214,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: 16,
-        backgroundColor: '#667eea', // Solid button color
+        backgroundColor: '#667eea',
     },
     buttonText: {
         color: '#fff',

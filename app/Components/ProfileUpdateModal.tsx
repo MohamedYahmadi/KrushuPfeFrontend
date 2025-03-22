@@ -41,7 +41,7 @@ export function ProfileUpdateModal(props) {
         .put(`http://172.20.10.3:8080/api/admin/update-profile/${userId}`, data)
         .then(() => {
           props.onClose();
-          props.onSubmit(data); // Call the onSubmit prop with the updated data
+          props.onSubmit(data);
         })
         .catch((error) => {
           console.error("Error updating profile:", error);

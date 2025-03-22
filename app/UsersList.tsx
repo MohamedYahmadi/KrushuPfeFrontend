@@ -14,7 +14,7 @@ import {
 import axios from "axios";
 import { User } from "./Entites/User";
 import Icon from "react-native-vector-icons/MaterialIcons";
-import EditUserModal from "./Components/EditUserModal"; // Import the new modal
+import EditUserModal from "./Components/EditUserModal";
 import { LinearGradient } from "expo-linear-gradient";
 
 const UsersList = () => {

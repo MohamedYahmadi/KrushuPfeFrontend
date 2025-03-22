@@ -122,7 +122,7 @@ export default function ChangePassword() {
                         </View>
                     </View>
 
-                    {/* New Password Input */}
+
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>New Password</Text>
                         <View style={styles.inputContainer}>
@@ -148,7 +148,7 @@ export default function ChangePassword() {
                         </View>
                     </View>
 
-                    {/* Confirm New Password Input */}
+
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Confirm New Password</Text>
                         <View style={styles.inputContainer}>
@@ -174,7 +174,7 @@ export default function ChangePassword() {
                         </View>
                     </View>
 
-                    {/* Change Password Button */}
+
                     <TouchableOpacity
                         style={styles.button}
                         onPress={handleChangePassword}
@@ -203,7 +203,7 @@ export default function ChangePassword() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#1a1a1a", // Solid dark background
+        backgroundColor: "#1a1a1a",
     },
     scrollContainer: {
         flexGrow: 1,
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         paddingVertical: 16,
-        backgroundColor: "#667eea", // Solid button color
+        backgroundColor: "#667eea",
     },
     buttonText: {
         color: "#fff",
