@@ -23,7 +23,7 @@ export default function ResetPassword() {
 
         try {
             const response = await axios.post(
-                'http://192.168.1.105:8080/api/user/reset-password',
+                'http://172.20.10.2:8080/api/user/reset-password',
                 { resetCode, newPassword, confirmPassword }
             );
 

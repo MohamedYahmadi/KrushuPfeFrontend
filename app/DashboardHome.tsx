@@ -1,76 +1,67 @@
+import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useState, useRef } from 'react';
+import axios from 'axios';
 
-// Mock data for the dashboard
-const kpiData = [
-  {
-    category: 'People',
-    metrics: [
-      { name: 'Absenteeism %', target: '1', values: ['1', '0', '0', '0', '0', '0', '0'] },
-      { name: 'Fluctuation %', target: '1', values: ['1', '1', '1', '1', '1', '1', '1'] },
-      { name: 'Qual L (Qualification Level) %', target: '100', values: ['100', '100', '100', '100', '100', '100', '100'] },
-      { name: 'Qual B (Qualification Back up) %', target: '100', values: ['100', '85', '90', '85', '88', '85', '85'] },
-    ]
-  },
-  {
-    category: 'Quality',
-    metrics: [
-      { name: 'Fault Elimination - RFR 1/2', target: '3', values: ['3', '33', '40', '38', '39', '36', '35'] },
-      { name: 'PPM / Hotline', target: '1', values: ['1', '0', '0', '0', '0', '0', '0'] },
-      { name: 'LPA - %', target: '4', values: ['4', '4', '4', '4', '4', '4', '4'] },
-      { name: 'Scrap - Kg', target: '25', values: ['25', '15', '15', '15', '14', '15', '15'] },
-    ]
-  },
-  {
-    category: 'Logistics',
-    metrics: [
-      { name: 'Delivery Status (Backlog / current date) - pcs', target: '0', values: ['0', '0', '0', '0', '0', '0', '0'] },
-      { name: 'Open Orders', target: '50,000', values: ['50,000', '40k', '45k', '40k', '42k', '40k', '40k'] },
-      { name: 'Material availability - incidents (# of blocks/Kan.ord.)', target: '100', values: ['100', '100', '100', '100', '100', '100', '100'] },
-      { name: 'Efficiency %', target: '100', values: ['100', '98', '98', '98', '100', '98', '98'] },
-    ]
-  },
-  {
-    category: 'Productivity',
-    metrics: [
-      { name: 'OEE Foaming', target: '1500', values: ['1500', '1400', '1350', '1420', '1510', '1500', '1500'] },
-      { name: 'Production Volume', target: '0', values: ['0', '0', '0', '0', '0', '0', '0'] },
-      { name: 'Foaming Downtime - min', target: '0', values: ['0', '0', '0', '0', '0', '0', '0'] },
-      { name: 'Total Downtime - min', target: '60', values: ['60', '65', '60', '60', '62', '65', '65'] },
-      { name: 'Nbr of Molding Setup', target: '5', values: ['5', '25', '30', '25', '27', '30', '30'] },
-      { name: 'Molding Setup Time', target: '120', values: ['120', '125', '130', '125', '127', '130', '130'] },
-      { name: 'Machine availability', target: '100', values: ['100', '100', '100', '100', '100', '100', '100'] },
-      { name: 'Gemba -Nb of implement improvements in the last month', target: '10', values: ['10', '10', '10', '10', '10', '10', '10'] },
-      { name: '5S', target: '10', values: ['10', '10', '10', '10', '10', '10', '10'] },
-    ]
-  },
-];
+const API_URL = 'http://localhost:8080/api/admin/indicators-by-department'; // Replace with your actual API URL
 
-const days = ['Target', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-
-const actionItems = [
-  "1) Assurer do no speed, la documentation - selon la variante",
-  "2) Ajustement Machine + Supervision avec la variante",
-  "3) Simplification workflow by process & travail (Supervision) avec la variante"
-];
-
-const topWasteReasons = [
-  "1) Scrap vs Unpack",
-  "2) Downtime / Waiting",
-  "3) Inventory"
-];
-
-export function DashBoardHome() {
+const DashBoardHome = () => {
   const insets = useSafeAreaInsets();
   const [activeCategory, setActiveCategory] = useState(0);
+  const [departments, setDepartments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const scrollViewRef = useRef(null);
   const windowWidth = Dimensions.get('window').width;
 
-  // Calculate table width based on number of columns
-  const tableWidth = 150 + (days.length * 80) + 200; // categoryCell + dayCells + notesCell
-  const isTableWiderThanScreen = tableWidth > windowWidth;
+  // Days for the table header
+  const days = ['Target', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
+  // Action items and waste reasons (static data)
+  const actionItems = [
+    "1) Assurer do no speed, la documentation - selon la variante",
+    "2) Ajustement Machine + Supervision avec la variante",
+    "3) Simplification workflow by process & travail (Supervision) avec la variante"
+  ];
+
+  const topWasteReasons = [
+    "1) Scrap vs Unpack",
+    "2) Downtime / Waiting",
+    "3) Inventory"
+  ];
+
+  // Fetch data from API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get(API_URL);
+
+        // Transform API data to match frontend needs
+        const transformedData = response.data.map(dept => ({
+          id: dept.departmentName.toLowerCase().replace(/\s+/g, '-'), // Create ID from name
+          name: dept.departmentName.trim(),
+          indicators: dept.indicators.map(ind => ({
+            id: ind.id,
+            name: ind.name,
+            target: ind.targetPerWeek,
+            // Use target value for all days since dayValue is null
+            values: [ind.targetPerWeek, ...Array(6).fill(ind.targetPerWeek)]
+          }))
+        }));
+
+        setDepartments(transformedData);
+        setLoading(false);
+      } catch (err) {
+        setError(err.message);
+        setLoading(false);
+        console.error('Error fetching data:', err);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Navigation handlers
   const handlePrevCategory = () => {
     if (activeCategory > 0) {
       setActiveCategory(activeCategory - 1);
@@ -78,45 +69,47 @@ export function DashBoardHome() {
   };
 
   const handleNextCategory = () => {
-    if (activeCategory < kpiData.length - 1) {
+    if (activeCategory < departments.length - 1) {
       setActiveCategory(activeCategory + 1);
     }
   };
 
-  // Function to determine if a value is better than, equal to, or worse than target
-  const getValueStatus = (value: string, target: string, metricName: string): string => {
-    // For some metrics, lower is better (like downtime, scrap)
-    const lowerIsBetter = metricName.includes('Downtime') ||
-        metricName.includes('Scrap') ||
-        metricName.includes('Absenteeism') ||
-        metricName.includes('Fluctuation') ||
-        metricName.includes('PPM');
+  // Loading and error states
+  if (loading) {
+    return (
+        <View style={[styles.container, styles.centerContainer]}>
+          <Text>Loading data...</Text>
+        </View>
+    );
+  }
 
-    // Skip comparison for target column
-    if (value === target) return 'neutral';
+  if (error) {
+    return (
+        <View style={[styles.container, styles.centerContainer]}>
+          <Text style={styles.errorText}>Error: {error}</Text>
+        </View>
+    );
+  }
 
-    // Parse values to numbers if possible for comparison
-    let numValue = parseFloat(value.replace('k', '000').replace('%', ''));
-    let numTarget = parseFloat(target.replace('k', '000').replace('%', ''));
+  if (departments.length === 0) {
+    return (
+        <View style={[styles.container, styles.centerContainer]}>
+          <Text>No data available</Text>
+        </View>
+    );
+  }
 
-    // If parsing failed, do string comparison
-    if (isNaN(numValue) || isNaN(numTarget)) {
-      return 'neutral';
-    }
-
-    if (lowerIsBetter) {
-      return numValue < numTarget ? 'better' : numValue > numTarget ? 'worse' : 'neutral';
-    } else {
-      return numValue > numTarget ? 'better' : numValue < numTarget ? 'worse' : 'neutral';
-    }
-  };
+  // Calculate table width based on number of columns
+  const tableWidth = 150 + (days.length * 80) + 200;
+  const isTableWiderThanScreen = tableWidth > windowWidth;
 
   return (
       <ScrollView
           contentContainerStyle={styles.scrollContainer}
-          showsVerticalScrollIndicator={true}
+          showsVerticalScrollIndicator={false}
       >
         <View style={[styles.container, { paddingTop: insets.top }]}>
+          {/* Header */}
           <View style={styles.header}>
             <View style={styles.logoContainer}>
               <Text style={styles.logoText}>KS</Text>
@@ -137,20 +130,20 @@ export function DashBoardHome() {
             >
               <Text style={styles.navButtonText}>{"<"}</Text>
             </TouchableOpacity>
-            <Text style={styles.categoryTitle}>{kpiData[activeCategory].category}</Text>
+            <Text style={styles.categoryTitle}>{departments[activeCategory]?.name}</Text>
             <TouchableOpacity
-                style={[styles.navButton, activeCategory === kpiData.length - 1 && styles.navButtonDisabled]}
+                style={[styles.navButton, activeCategory === departments.length - 1 && styles.navButtonDisabled]}
                 onPress={handleNextCategory}
-                disabled={activeCategory === kpiData.length - 1}
+                disabled={activeCategory === departments.length - 1}
             >
               <Text style={styles.navButtonText}>{">"}</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Table with horizontal scrolling */}
+          {/* Table with actual data */}
           <ScrollView
               horizontal
-              showsHorizontalScrollIndicator={true}
+              showsHorizontalScrollIndicator={false}
               ref={scrollViewRef}
               style={styles.horizontalScrollView}
           >
@@ -161,12 +154,15 @@ export function DashBoardHome() {
                   <Text style={styles.headerText}>KPI</Text>
                 </View>
                 {days.map((day, index) => (
-                    <View key={index} style={[
-                      styles.dayCell,
-                      day === 'Th' ? styles.highlightedDay : null,
-                      day === 'Target' ? styles.targetCell : null,
-                      index === 0 ? styles.firstColumn : null, // Add left border for the first column
-                    ]}>
+                    <View
+                        key={`day-${index}`}
+                        style={[
+                          styles.dayCell,
+                          day === 'Th' ? styles.highlightedDay : null,
+                          day === 'Target' ? styles.targetCell : null,
+                          index === 0 ? styles.firstColumn : null,
+                        ]}
+                    >
                       <Text style={styles.headerText}>{day}</Text>
                     </View>
                 ))}
@@ -175,45 +171,34 @@ export function DashBoardHome() {
                 </View>
               </View>
 
-              {/* Table Body - Only show active category */}
-              <View>
-                {/* Metrics for active category */}
-                {kpiData[activeCategory].metrics.map((metric, metricIndex) => (
-                    <View key={metricIndex} style={styles.metricRow}>
-                      <View style={styles.categoryCell}>
-                        <Text style={styles.metricText}>{metric.name}</Text>
-                      </View>
-                      {metric.values.map((value, valueIndex) => {
-                        const status = valueIndex === 0 ? 'neutral' :
-                            getValueStatus(value, metric.target, metric.name);
-
-                        return (
-                            <View key={valueIndex} style={[
+              {/* Table Body - Actual Indicators */}
+              {departments[activeCategory]?.indicators?.map((indicator, index) => (
+                  <View key={`indicator-${indicator.id || index}`} style={styles.metricRow}>
+                    <View style={styles.categoryCell}>
+                      <Text style={styles.metricText}>{indicator.name}</Text>
+                    </View>
+                    {indicator.values.map((value, valueIndex) => (
+                        <View
+                            key={`value-${valueIndex}`}
+                            style={[
                               styles.valueCell,
                               valueIndex === 4 ? styles.highlightedDay : null,
                               valueIndex === 0 ? styles.targetCell : null,
-                              valueIndex === 0 ? styles.firstColumn : null, // Add left border for the first column
-                            ]}>
-                              <Text style={[
-                                styles.valueText,
-                                status === 'better' ? styles.betterValue : null,
-                                status === 'worse' ? styles.worseValue : null
-                              ]}>
-                                {value}
-                              </Text>
-                            </View>
-                        );
-                      })}
-                      {metricIndex < topWasteReasons.length ? (
-                          <View style={[styles.notesCell, styles.lastColumn]}>
-                            <Text style={styles.notesText}>{topWasteReasons[metricIndex]}</Text>
-                          </View>
-                      ) : (
-                          <View style={[styles.notesCell, styles.lastColumn]} />
-                      )}
-                    </View>
-                ))}
-              </View>
+                              valueIndex === 0 ? styles.firstColumn : null,
+                            ]}
+                        >
+                          <Text style={styles.valueText}>{value}</Text>
+                        </View>
+                    ))}
+                    {index < topWasteReasons.length ? (
+                        <View style={[styles.notesCell, styles.lastColumn]}>
+                          <Text style={styles.notesText}>{topWasteReasons[index]}</Text>
+                        </View>
+                    ) : (
+                        <View style={[styles.notesCell, styles.lastColumn]} />
+                    )}
+                  </View>
+              ))}
             </View>
           </ScrollView>
 
@@ -234,14 +219,14 @@ export function DashBoardHome() {
             </View>
             <View style={styles.actionItems}>
               {actionItems.map((item, index) => (
-                  <Text key={index} style={styles.actionItemText}>{item}</Text>
+                  <Text key={`action-${index}`} style={styles.actionItemText}>{item}</Text>
               ))}
             </View>
           </View>
         </View>
       </ScrollView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   scrollContainer: {
@@ -250,6 +235,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
+  },
+  centerContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    flex: 1,
+  },
+  errorText: {
+    color: 'red',
   },
   header: {
     backgroundColor: '#fff',
@@ -356,11 +349,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#5a3c7c',
   },
   firstColumn: {
-    borderLeftWidth: 2, // Add a left border to separate columns
+    borderLeftWidth: 2,
     borderLeftColor: '#8a6bab',
   },
   lastColumn: {
-    borderRightWidth: 2, // Add a right border to separate columns
+    borderRightWidth: 2,
     borderRightColor: '#8a6bab',
   },
   notesCell: {
@@ -395,14 +388,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     color: '#333',
-  },
-  betterValue: {
-    color: '#28a745',
-    fontWeight: 'bold',
-  },
-  worseValue: {
-    color: '#dc3545',
-    fontWeight: 'bold',
   },
   notesText: {
     fontSize: 14,
@@ -459,3 +444,5 @@ const styles = StyleSheet.create({
     color: '#333',
   },
 });
+
+export default DashBoardHome;

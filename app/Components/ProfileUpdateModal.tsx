@@ -38,7 +38,7 @@ export function ProfileUpdateModal(props) {
     let { userId, token } = retrieveId();
 
     axios
-        .put(`http://172.20.10.3:8080/api/admin/update-profile/${userId}`, data)
+        .put(`http://172.20.10.2:8080/api/admin/update-profile/${userId}`, data)
         .then(() => {
           props.onClose();
           props.onSubmit(data);

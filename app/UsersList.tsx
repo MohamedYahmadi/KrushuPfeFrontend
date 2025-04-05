@@ -33,7 +33,7 @@ const UsersList = () => {
   const fetchUsers = async () => {
     try {
       const response = await axios.get<User[]>(
-          "http://192.168.1.105:8080/api/admin/all-users"
+          "http://172.20.10.2:8080/api/admin/all-users"
       );
       if (response.status === 200) {
         setUsers(response.data);
@@ -57,7 +57,7 @@ const UsersList = () => {
   const deleteUser = async (userId: number) => {
     try {
       const response = await axios.delete(
-          `http://192.168.1.105:8080/api/admin/delete-user/${userId}`
+          `http://172.20.10.2:8080/api/admin/delete-user/${userId}`
       );
       if (response.status === 200) {
         setUsers(users.filter((user) => user.id !== userId));
@@ -96,7 +96,7 @@ const UsersList = () => {
       }
 
       const response = await axios.put(
-          `http://192.168.1.105:8080/api/admin/update-user-profile/${selectedUser.id}`,
+          `http://172.20.10.2:8080/api/admin/update-user-profile/${selectedUser.id}`,
           updatedData
       );
 

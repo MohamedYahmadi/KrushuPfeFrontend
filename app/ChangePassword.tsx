@@ -8,7 +8,8 @@ import {
     ScrollView,
     Dimensions,
     Alert,
-    ActivityIndicator, Platform,
+    ActivityIndicator,
+    Platform,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 import axios from "axios";
@@ -16,7 +17,6 @@ import * as SecureStore from "expo-secure-store";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "./types";
-import Profile from "./Profile";
 
 const { width } = Dimensions.get("window");
 
@@ -58,7 +58,7 @@ export default function ChangePassword() {
 
         try {
             const response = await axios.post(
-                `http://192.168.1.105:8080/api/user/update-password/${userId}`,
+                `http://172.20.10.2:8080/api/user/update-password/${userId}`,
                 {
                     oldPassword,
                     newPassword,
@@ -67,8 +67,12 @@ export default function ChangePassword() {
             );
 
             if (response.status === 200) {
-                Alert.alert("Success", "Password changed successfully");
-                navigation.navigate("Profile");
+                Alert.alert("Success", "Password changed successfully", [
+                    {
+                        text: "OK",
+                        onPress: () => navigation.navigate("Dashboard", { screen: "Profile" })
+                    }
+                ]);
             }
         } catch (error) {
             console.error(error);
@@ -77,7 +81,6 @@ export default function ChangePassword() {
             setLoading(false);
         }
     };
-
     const toggleOldPasswordVisibility = () => {
         setIsOldPasswordVisible(!isOldPasswordVisible);
     };
@@ -92,10 +95,18 @@ export default function ChangePassword() {
 
     return (
         <View style={styles.container}>
+            {/* Back Button Header */}
+            <View style={styles.header}>
+                <TouchableOpacity
+                    style={styles.backButton}
+                    onPress={() => navigation.navigate("Dashboard", { screen: "Profile" })}                >
+                    <Icon name="arrow-left" size={20} color="#fff" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Change Password</Text>
+            </View>
+
             <ScrollView contentContainerStyle={styles.scrollContainer}>
                 <View style={styles.formContainer}>
-                    <Text style={styles.title}>Change Password</Text>
-
                     {/* Old Password Input */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Current Password</Text>
@@ -122,7 +133,6 @@ export default function ChangePassword() {
                         </View>
                     </View>
 
-
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>New Password</Text>
                         <View style={styles.inputContainer}>
@@ -148,7 +158,6 @@ export default function ChangePassword() {
                         </View>
                     </View>
 
-
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Confirm New Password</Text>
                         <View style={styles.inputContainer}>
@@ -173,7 +182,6 @@ export default function ChangePassword() {
                             </TouchableOpacity>
                         </View>
                     </View>
-
 
                     <TouchableOpacity
                         style={styles.button}
@@ -205,9 +213,24 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "#1a1a1a",
     },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#333',
+    },
+    backButton: {
+        marginRight: 15,
+    },
+    headerTitle: {
+        fontSize: 20,
+        fontWeight: "600",
+        color: "#fff",
+    },
     scrollContainer: {
         flexGrow: 1,
-        paddingVertical: 30,
+        paddingVertical: 20,
     },
     formContainer: {
         width: width * 0.9,

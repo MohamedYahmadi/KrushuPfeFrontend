@@ -1,16 +1,16 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { createDrawerNavigator, DrawerContentScrollView, DrawerItemList } from "@react-navigation/drawer";
+import { useFocusEffect } from '@react-navigation/native';
 import Profile from "./Profile";
 import CreateAccount from "./CreateAccount";
-import { DashBoardHome } from "./DashboardHome";
+import  DashBoardHome  from "./DashboardHome";
 import UsersList from "./UsersList";
 import LogoutButton from "./Components/LogoutButton";
 import * as SecureStore from "expo-secure-store";
-import {Platform} from "react-native";
+import { Platform } from "react-native";
 
 const Drawer = createDrawerNavigator();
 
-// Custom Drawer Content Component
 const CustomDrawerContent = (props) => {
     return (
         <DrawerContentScrollView {...props}>
@@ -23,23 +23,25 @@ const CustomDrawerContent = (props) => {
 export default function Dashboard() {
     const [userRole, setUserRole] = useState<string | null>(null);
 
-    useEffect(() => {
-        const fetchUserRole = async () => {
-            try {
-                if (Platform.OS === "web") {
-                    const role = localStorage.getItem("role");
-                    setUserRole(role);
-                } else {
-                    const role = await SecureStore.getItemAsync("role");
-                    setUserRole(role);
-                }
-            } catch (error) {
-                console.error("Failed to fetch user role:", error);
+    const fetchUserRole = async () => {
+        try {
+            let role;
+            if (Platform.OS === "web") {
+                role = localStorage.getItem("role");
+            } else {
+                role = await SecureStore.getItemAsync("role");
             }
-        };
+            setUserRole(role);
+        } catch (error) {
+            console.error("Failed to fetch user role:", error);
+        }
+    };
 
-        fetchUserRole();
-    }, []);
+    useFocusEffect(
+        React.useCallback(() => {
+            fetchUserRole();
+        }, [])
+    );
 
     return (
         <Drawer.Navigator
