@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import axios from "axios";
 import { User } from "./Entites/User";
-import Icon from "react-native-vector-icons/MaterialIcons";
+import { CreditCard as Edit2, Trash2, Search, Mail, CircleUser as UserCircle2, Building2, IdCard } from "lucide-react-native";
 import EditUserModal from "./Components/EditUserModal";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -33,7 +33,7 @@ const UsersList = () => {
   const fetchUsers = async () => {
     try {
       const response = await axios.get<User[]>(
-          "http://172.20.10.2:8080/api/admin/all-users"
+          "http://172.20.10.5:8080/api/admin/all-users"
       );
       if (response.status === 200) {
         setUsers(response.data);
@@ -57,7 +57,7 @@ const UsersList = () => {
   const deleteUser = async (userId: number) => {
     try {
       const response = await axios.delete(
-          `http://172.20.10.2:8080/api/admin/delete-user/${userId}`
+          `http://172.20.10.5:8080/api/admin/delete-user/${userId}`
       );
       if (response.status === 200) {
         setUsers(users.filter((user) => user.id !== userId));
@@ -96,7 +96,7 @@ const UsersList = () => {
       }
 
       const response = await axios.put(
-          `http://172.20.10.2:8080/api/admin/update-user-profile/${selectedUser.id}`,
+          `http://172.20.10.5:8080/api/admin/update-user-profile/${selectedUser.id}`,
           updatedData
       );
 
@@ -105,7 +105,6 @@ const UsersList = () => {
             user.id === selectedUser.id ? { ...user, ...updatedData } : user
         );
         setUsers(updatedUsers);
-
         Alert.alert("Success", "User updated successfully");
         setIsModalVisible(false);
       } else {
@@ -126,62 +125,100 @@ const UsersList = () => {
 
   if (loading) {
     return (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#6200ee" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#0056b3" />
         </View>
     );
   }
 
   if (error) {
     return (
-        <View style={styles.centered}>
+        <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Error: {error}</Text>
         </View>
     );
   }
 
   return (
-      <LinearGradient colors={["#1a1a1a", "#333"]} style={styles.container}>
-        <TextInput
-            style={styles.searchBar}
-            placeholder="Search users..."
-            placeholderTextColor="#888"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-        />
+      <View style={styles.container}>
+        <LinearGradient
+            colors={['#0056b3', '#003366']}
+            style={styles.headerGradient}
+        >
+          <Text style={styles.headerTitle}>Users Management</Text>
+          <View style={styles.searchContainer}>
+            <Search size={20} color="#fff" style={styles.searchIcon} />
+            <TextInput
+                style={styles.searchBar}
+                placeholder="Search users..."
+                placeholderTextColor="#e6e6e6"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+            />
+          </View>
+        </LinearGradient>
+
         <FlatList
+            style={styles.listContainer}
+            contentContainerStyle={styles.listContentContainer}
             data={filteredUsers}
             renderItem={({ item }) => (
                 <View style={styles.card}>
-                  <Image
-                      source={require("../assets/images/user-icon.png")}
-                      style={styles.userIcon}
-                  />
-                  <View style={styles.cardContent}>
-                    <Text style={styles.name}>
-                      {item.firstName} {item.lastName}
-                    </Text>
-                    <Text style={styles.email}>{item.email}</Text>
-                    <Text style={styles.role}>{item.role}</Text>
-                    <Text style={styles.registration}>{item.registrationNumber}</Text>
+                  <View style={styles.cardHeader}>
+                    <Image
+                        source={{ uri: 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=400&h=400&fit=crop' }}
+                        style={styles.userImage}
+                    />
+                    <View style={styles.headerInfo}>
+                      <Text style={styles.userName}>
+                        {item.firstName} {item.lastName}
+                      </Text>
+                      <Text style={styles.userRole}>{item.role}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.infoSection}>
+                    <View style={styles.infoContainer}>
+                      <Mail size={16} color="#0056b3" style={styles.icon} />
+                      <View style={styles.infoTextContainer}>
+                        <Text style={styles.label}>Email</Text>
+                        <Text style={styles.value}>{item.email}</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.infoContainer}>
+                      <IdCard size={16} color="#0056b3" style={styles.icon} />
+                      <View style={styles.infoTextContainer}>
+                        <Text style={styles.label}>Registration Number</Text>
+                        <Text style={styles.value}>{item.registrationNumber}</Text>
+                      </View>
+                    </View>
+
                     {item.department && (
-                        <Text style={styles.department}>
-                          Department: {item.department}
-                        </Text>
+                        <View style={styles.infoContainer}>
+                          <Building2 size={16} color="#0056b3" style={styles.icon} />
+                          <View style={styles.infoTextContainer}>
+                            <Text style={styles.label}>Department</Text>
+                            <Text style={styles.value}>{item.department}</Text>
+                          </View>
+                        </View>
                     )}
                   </View>
+
                   <View style={styles.actions}>
                     <TouchableOpacity
-                        style={styles.editButton}
+                        style={[styles.button, styles.editButton]}
                         onPress={() => handleEditUser(item)}
                     >
-                      <Icon name="edit" size={24} color="#007AFF" />
+                      <Edit2 size={16} color="#fff" />
+                      <Text style={styles.buttonText}>Edit</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                        style={styles.deleteButton}
+                        style={[styles.button, styles.deleteButton]}
                         onPress={() => confirmDelete(item.id)}
                     >
-                      <Icon name="delete" size={24} color="#ff4444" />
+                      <Trash2 size={16} color="#fff" />
+                      <Text style={styles.buttonText}>Delete</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -192,7 +229,6 @@ const UsersList = () => {
             }
         />
 
-        {/* New Modal */}
         {selectedUser && (
             <EditUserModal
                 visible={isModalVisible}
@@ -201,90 +237,153 @@ const UsersList = () => {
                 onSubmit={handleUpdateUser}
             />
         )}
-      </LinearGradient>
+      </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    backgroundColor: '#f5f5f5',
   },
-  centered: {
+  loadingContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    padding: 20,
   },
   errorText: {
-    color: "#ff4444",
+    color: '#dc3545',
     fontSize: 16,
+    textAlign: 'center',
   },
-  searchBar: {
-    backgroundColor: "rgba(255,255,255,0.1)",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  headerGradient: {
+    padding: 20,
+    paddingTop: 40,
+    paddingBottom: 20,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 8,
-    marginBottom: 16,
-    fontSize: 16,
-    color: "#fff",
-  },
-  card: {
-    backgroundColor: "rgba(255,255,255,0.1)",
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  userIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 16,
-  },
-  cardContent: {
-    flex: 1,
-  },
-  name: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 4,
-    color: "#fff",
-  },
-  email: {
-    fontSize: 14,
-    color: "#bbb",
-    marginBottom: 4,
-  },
-  role: {
-    fontSize: 14,
-    color: "#888",
-    marginBottom: 4,
-  },
-  registration: {
-    fontSize: 14,
-    color: "#bbb",
-    marginBottom: 4,
-  },
-  department: {
-    fontSize: 14,
-    color: "#888",
-  },
-  actions: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  editButton: {
     padding: 8,
+  },
+  searchIcon: {
     marginRight: 8,
   },
+  searchBar: {
+    flex: 1,
+    color: '#fff',
+    fontSize: 14,
+    padding: 0,
+  },
+  listContainer: {
+    flex: 1,
+  },
+  listContentContainer: {
+    padding: 15,
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  userImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 12,
+  },
+  headerInfo: {
+    flex: 1,
+  },
+  userName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 2,
+  },
+  userRole: {
+    fontSize: 12,
+    color: '#666',
+  },
+  infoSection: {
+    marginBottom: 12,
+  },
+  infoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  icon: {
+    marginRight: 10,
+  },
+  infoTextContainer: {
+    flex: 1,
+  },
+  label: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 2,
+  },
+  value: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '500',
+  },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  button: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+    borderRadius: 6,
+    gap: 6,
+  },
+  editButton: {
+    backgroundColor: '#0056b3',
+  },
   deleteButton: {
-    padding: 8,
+    backgroundColor: '#dc3545',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 

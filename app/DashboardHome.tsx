@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Text } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Text, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8080/api/admin/indicators-by-department'; // Replace with your actual API URL
+const API_URL = 'http://172.20.10.5:8080/api/admin/indicators-by-department';
 
 const DashBoardHome = () => {
   const insets = useSafeAreaInsets();
@@ -11,6 +11,7 @@ const DashBoardHome = () => {
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
   const scrollViewRef = useRef(null);
   const windowWidth = Dimensions.get('window').width;
 
@@ -30,36 +31,71 @@ const DashBoardHome = () => {
     "3) Inventory"
   ];
 
-  // Fetch data from API
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await axios.get(API_URL);
+  // Map day names to indices for value placement
+  const dayIndexMap = {
+    'Monday': 1,
+    'Tuesday': 2,
+    'Wednesday': 3,
+    'Thursday': 4,
+    'Friday': 5,
+    'Saturday': 6
+  };
 
-        // Transform API data to match frontend needs
-        const transformedData = response.data.map(dept => ({
-          id: dept.departmentName.toLowerCase().replace(/\s+/g, '-'), // Create ID from name
-          name: dept.departmentName.trim(),
-          indicators: dept.indicators.map(ind => ({
+  // Fetch data from API
+  const fetchDepartments = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(API_URL);
+
+      // Transform API data to match frontend needs
+      const transformedData = response.data.map(dept => ({
+        id: dept.departmentId,
+        name: dept.departmentName.trim(),
+        indicators: (dept.indicators || []).map(ind => {
+          // Initialize values array with target and empty days
+          const values = [
+            ind.targetPerWeek, // Target value at index 0
+            ...Array(6).fill(null) // Placeholder for daily values (indices 1-6)
+          ];
+
+          // Populate daily values from dailyValues array
+          (ind.dailyValues || []).forEach(dailyValue => {
+            const date = new Date(dailyValue.date);
+            const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+            const dayIndex = dayIndexMap[dayName];
+            if (dayIndex && dayIndex <= 6) {
+              values[dayIndex] = dailyValue.value;
+            }
+          });
+
+          return {
             id: ind.id,
             name: ind.name,
             target: ind.targetPerWeek,
-            // Use target value for all days since dayValue is null
-            values: [ind.targetPerWeek, ...Array(6).fill(ind.targetPerWeek)]
-          }))
-        }));
+            values: values
+          };
+        })
+      }));
 
-        setDepartments(transformedData);
-        setLoading(false);
-      } catch (err) {
-        setError(err.message);
-        setLoading(false);
-        console.error('Error fetching data:', err);
-      }
-    };
+      setDepartments(transformedData);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+      console.error('Error fetching data:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
-    fetchData();
+  useEffect(() => {
+    fetchDepartments();
   }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchDepartments();
+  };
 
   // Navigation handlers
   const handlePrevCategory = () => {
@@ -107,6 +143,13 @@ const DashBoardHome = () => {
       <ScrollView
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={["#6200ee"]}
+            />
+          }
       >
         <View style={[styles.container, { paddingTop: insets.top }]}>
           {/* Header */}
@@ -158,7 +201,6 @@ const DashBoardHome = () => {
                         key={`day-${index}`}
                         style={[
                           styles.dayCell,
-                          day === 'Th' ? styles.highlightedDay : null,
                           day === 'Target' ? styles.targetCell : null,
                           index === 0 ? styles.firstColumn : null,
                         ]}
@@ -182,12 +224,13 @@ const DashBoardHome = () => {
                             key={`value-${valueIndex}`}
                             style={[
                               styles.valueCell,
-                              valueIndex === 4 ? styles.highlightedDay : null,
                               valueIndex === 0 ? styles.targetCell : null,
                               valueIndex === 0 ? styles.firstColumn : null,
                             ]}
                         >
-                          <Text style={styles.valueText}>{value}</Text>
+                          <Text style={styles.valueText}>
+                            {value !== null ? value : '-'}
+                          </Text>
                         </View>
                     ))}
                     {index < topWasteReasons.length ? (
@@ -344,9 +387,6 @@ const styles = StyleSheet.create({
   },
   targetCell: {
     backgroundColor: '#8a6bab',
-  },
-  highlightedDay: {
-    backgroundColor: '#5a3c7c',
   },
   firstColumn: {
     borderLeftWidth: 2,

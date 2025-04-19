@@ -1,5 +1,5 @@
-import React from "react";
-import { TouchableOpacity, Text, Alert } from "react-native";
+import React, {useState} from "react";
+import { TouchableOpacity, Text, Alert, ActivityIndicator } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../types";
@@ -13,8 +13,10 @@ type LogoutButtonNavigationProp = NativeStackNavigationProp<
 
 const LogoutButton: React.FC = () => {
     const navigation = useNavigation<LogoutButtonNavigationProp>();
+    const [loading, setLoading] = useState(false);
 
     const handleLogout = async () => {
+        setLoading(true);
         try {
             if (Platform.OS === "web") {
                 localStorage.removeItem("token");
@@ -25,16 +27,29 @@ const LogoutButton: React.FC = () => {
                 await SecureStore.deleteItemAsync("userId");
                 await SecureStore.deleteItemAsync("role");
             }
-            navigation.navigate("Login");
+            navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+            });
         } catch (error) {
             console.error("Failed to logout:", error);
             Alert.alert("Logout Failed", "An error occurred while logging out.");
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
-        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-            <Text style={styles.logoutButtonText}>Logout</Text>
+        <TouchableOpacity
+            onPress={handleLogout}
+            style={styles.logoutButton}
+            disabled={loading}
+        >
+            {loading ? (
+                <ActivityIndicator color="#fff" />
+            ) : (
+                <Text style={styles.logoutButtonText}>Logout</Text>
+            )}
         </TouchableOpacity>
     );
 };

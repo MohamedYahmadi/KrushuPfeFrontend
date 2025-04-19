@@ -1,3 +1,5 @@
+import id from "ajv/lib/vocabularies/core/id";
+
 export type RootStackParamList = {
   Home: undefined;
   Login: undefined;
@@ -10,4 +12,5 @@ export type RootStackParamList = {
   ChangePassword: undefined;
   UsersList: undefined;
   CreateAdminAccount: undefined;
+  DepartmentList: { id: number; name: string; };
 };

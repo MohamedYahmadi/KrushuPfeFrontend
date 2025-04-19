@@ -2,7 +2,7 @@ import * as React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import Home from "./Home";
 import Login from "./Login";
-import RequestResetPassword from "./RequestResetPassword"; // Import the new screen
+import RequestResetPassword from "./RequestResetPassword";
 import ResetPassword from "./ResetPassword";
 import CreateAccount from "./CreateAccount";
 import Dashboard from "./Dashboard";
