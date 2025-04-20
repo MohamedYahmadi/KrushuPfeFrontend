@@ -15,10 +15,8 @@ const DashBoardHome = () => {
   const scrollViewRef = useRef(null);
   const windowWidth = Dimensions.get('window').width;
 
-  // Days for the table header
   const days = ['Target', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
-  // Action items and waste reasons (static data)
   const actionItems = [
     "1) Assurer do no speed, la documentation - selon la variante",
     "2) Ajustement Machine + Supervision avec la variante",
@@ -31,7 +29,6 @@ const DashBoardHome = () => {
     "3) Inventory"
   ];
 
-  // Map day names to indices for value placement
   const dayIndexMap = {
     'Monday': 1,
     'Tuesday': 2,
@@ -41,30 +38,36 @@ const DashBoardHome = () => {
     'Saturday': 6
   };
 
-  // Fetch data from API
   const fetchDepartments = async () => {
     try {
       setLoading(true);
       const response = await axios.get(API_URL);
 
-      // Transform API data to match frontend needs
+      const now = new Date();
+      const dayOfWeek = now.getDay();
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+      monday.setHours(0, 0, 0, 0);
+
       const transformedData = response.data.map(dept => ({
         id: dept.departmentId,
         name: dept.departmentName.trim(),
         indicators: (dept.indicators || []).map(ind => {
-          // Initialize values array with target and empty days
+
           const values = [
-            ind.targetPerWeek, // Target value at index 0
-            ...Array(6).fill(null) // Placeholder for daily values (indices 1-6)
+            ind.targetPerWeek,
+            ...Array(6).fill(null)
           ];
 
-          // Populate daily values from dailyValues array
+
           (ind.dailyValues || []).forEach(dailyValue => {
             const date = new Date(dailyValue.date);
-            const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
-            const dayIndex = dayIndexMap[dayName];
-            if (dayIndex && dayIndex <= 6) {
-              values[dayIndex] = dailyValue.value;
+            if (date >= monday) {
+              const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+              const dayIndex = dayIndexMap[dayName];
+              if (dayIndex && dayIndex <= 6) {
+                values[dayIndex] = dailyValue.value;
+              }
             }
           });
 
@@ -97,7 +100,6 @@ const DashBoardHome = () => {
     fetchDepartments();
   };
 
-  // Navigation handlers
   const handlePrevCategory = () => {
     if (activeCategory > 0) {
       setActiveCategory(activeCategory - 1);
@@ -110,7 +112,6 @@ const DashBoardHome = () => {
     }
   };
 
-  // Loading and error states
   if (loading) {
     return (
         <View style={[styles.container, styles.centerContainer]}>
@@ -135,7 +136,6 @@ const DashBoardHome = () => {
     );
   }
 
-  // Calculate table width based on number of columns
   const tableWidth = 150 + (days.length * 80) + 200;
   const isTableWiderThanScreen = tableWidth > windowWidth;
 
@@ -164,7 +164,6 @@ const DashBoardHome = () => {
             <Text style={styles.headerTitle}>Shop Floor Management Foaming PROJECT</Text>
           </View>
 
-          {/* Category Navigation */}
           <View style={styles.categoryNavigation}>
             <TouchableOpacity
                 style={[styles.navButton, activeCategory === 0 && styles.navButtonDisabled]}
@@ -183,7 +182,6 @@ const DashBoardHome = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Table with actual data */}
           <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -213,7 +211,7 @@ const DashBoardHome = () => {
                 </View>
               </View>
 
-              {/* Table Body - Actual Indicators */}
+
               {departments[activeCategory]?.indicators?.map((indicator, index) => (
                   <View key={`indicator-${indicator.id || index}`} style={styles.metricRow}>
                     <View style={styles.categoryCell}>
@@ -245,14 +243,12 @@ const DashBoardHome = () => {
             </View>
           </ScrollView>
 
-          {/* Horizontal scroll indicator */}
           {isTableWiderThanScreen && (
               <View style={styles.scrollIndicator}>
                 <Text style={styles.scrollIndicatorText}>← Swipe to see more →</Text>
               </View>
           )}
 
-          {/* Action Items Section */}
           <View style={styles.actionSection}>
             <View style={styles.actionHeader}>
               <Text style={styles.actionHeaderText}>Action Settings</Text>

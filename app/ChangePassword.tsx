@@ -95,7 +95,6 @@ export default function ChangePassword() {
 
     return (
         <View style={styles.container}>
-            {/* Back Button Header */}
             <View style={styles.header}>
                 <TouchableOpacity
                     style={styles.backButton}
@@ -107,7 +106,6 @@ export default function ChangePassword() {
 
             <ScrollView contentContainerStyle={styles.scrollContainer}>
                 <View style={styles.formContainer}>
-                    {/* Old Password Input */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Current Password</Text>
                         <View style={styles.inputContainer}>

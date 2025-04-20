@@ -114,7 +114,6 @@ const Login = () => {
             response.data.department || null
         );
 
-        // Successful login for all roles
         navigation.reset({
           index: 0,
           routes: [{ name: "Dashboard" }],

@@ -24,7 +24,7 @@ import {
     PlusCircle,
     UserCircle,
     LogOut,
-    BarChart3, List
+    BarChart3, List, LucideHistory
 } from "lucide-react-native";
 import Profile from "./Profile";
 import CreateAccount from "./CreateAccount";
@@ -36,6 +36,7 @@ import AddIndicatorValueScreen from "./AddIndicatorValueScreen";
 import * as SecureStore from "expo-secure-store";
 import TeamMemberAddValueScreen from "@/app/TeamMemberAddValueScreen";
 import IndicatorManagementScreen from "./IndicatorManagementScreen";
+import HistoryDashboard from "@/app/HistoryDashboard";
 
 const Drawer = createDrawerNavigator();
 
@@ -112,7 +113,6 @@ export default function Dashboard() {
                 throw new Error("User role not found in storage");
             }
 
-            // Normalize role to uppercase for consistent comparison
             setUserRole(role.toUpperCase());
         } catch (error) {
             console.error("Failed to fetch user role:", error);
@@ -173,7 +173,6 @@ export default function Dashboard() {
                 headerTitleStyle: styles.headerTitle,
             }}
         >
-            {/* Common screens for all roles */}
             <Drawer.Screen
                 name="Home"
                 component={DashBoardHome}
@@ -191,7 +190,6 @@ export default function Dashboard() {
                 }}
             />
 
-            {/* Only show additional screens if not Viewer */}
             {userRole !== "VIEWER" && (
                 <>
                     {/* Admin-specific screens */}
@@ -245,10 +243,17 @@ export default function Dashboard() {
                                     drawerIcon: ({ color, size }) => <List size={size} color={color} />
                                 }}
                             />
+                            <Drawer.Screen
+                                name="weeklyReport"
+                                component={HistoryDashboard}
+                                options={{
+                                    title: "Weekly Report",
+                                    drawerIcon: ({ color, size }) => <LucideHistory size={size} color={color} />
+                                }}
+                            />
                         </>
                     )}
 
-                    {/* Team Member-specific screens */}
                     {userRole === "TEAM_MEMBER" && (
                         <Drawer.Screen
                             name="TeamMemberAddValue"

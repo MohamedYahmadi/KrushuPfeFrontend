@@ -37,7 +37,6 @@ const IndicatorManagementScreen = () => {
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedIndicator, setSelectedIndicator] = useState<Indicator | null>(null);
 
-    // Fetch all department names
     const fetchDepartments = async () => {
         try {
             setLoading(prev => ({ ...prev, departments: true }));
@@ -51,7 +50,6 @@ const IndicatorManagementScreen = () => {
         }
     };
 
-    // Fetch indicators for selected department
     const fetchIndicators = async (department: string) => {
         try {
             setLoading(prev => ({ ...prev, indicators: true }));
@@ -66,7 +64,6 @@ const IndicatorManagementScreen = () => {
         }
     };
 
-    // Handle indicator deletion
     const handleDeleteIndicator = async (indicatorId: number) => {
         Alert.alert(
             'Confirm Delete',
@@ -101,13 +98,11 @@ const IndicatorManagementScreen = () => {
         );
     };
 
-    // Open edit modal
     const openEditModal = (indicator: Indicator) => {
         setSelectedIndicator(indicator);
         setModalVisible(true);
     };
 
-    // Handle successful update
     const handleUpdateSuccess = () => {
         setModalVisible(false);
         if (selectedDepartment) {
@@ -166,7 +161,7 @@ const IndicatorManagementScreen = () => {
 
                 <View style={styles.contentContainer}>
                     <View style={styles.card}>
-                        {/* Department Selection */}
+
                         <View style={styles.section}>
                             <Text style={styles.sectionTitle}>Select Department</Text>
                             <View style={styles.selectContainer}>
@@ -185,7 +180,7 @@ const IndicatorManagementScreen = () => {
                             </View>
                         </View>
 
-                        {/* Indicators List */}
+
                         <View style={styles.section}>
                             <View style={styles.sectionHeader}>
                                 <BarChart2 size={20} color="#0056b3" />
@@ -240,7 +235,7 @@ const IndicatorManagementScreen = () => {
                 </View>
             </ScrollView>
 
-            {/* Edit Indicator Modal */}
+
             <EditIndicatorModal
                 visible={modalVisible}
                 onClose={() => setModalVisible(false)}

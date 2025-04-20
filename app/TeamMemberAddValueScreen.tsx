@@ -20,7 +20,6 @@ import * as SecureStore from 'expo-secure-store';
 const API_BASE_URL = 'http://172.20.10.5:8080';
 
 const TeamMemberAddValueScreen = ({ navigation }) => {
-    // State management
     const [indicators, setIndicators] = useState([]);
     const [formData, setFormData] = useState({
         indicatorName: '',
@@ -35,7 +34,6 @@ const TeamMemberAddValueScreen = ({ navigation }) => {
     const [userDepartment, setUserDepartment] = useState('');
     const [userId, setUserId] = useState('');
 
-    // Fetch user data from secure storage
     const getUserData = async () => {
         try {
             let storedUserId, storedDepartment;
@@ -62,7 +60,6 @@ const TeamMemberAddValueScreen = ({ navigation }) => {
         }
     };
 
-    // Fetch indicators for the user's department
     const fetchIndicators = async (departmentName) => {
         try {
             setLoading(prev => ({ ...prev, indicators: true }));
@@ -96,18 +93,16 @@ const TeamMemberAddValueScreen = ({ navigation }) => {
         }
     };
 
-    // Handle refresh
     const onRefresh = () => {
         setRefreshing(true);
         getUserData();
     };
 
-    // Prepare data for dropdown
     const indicatorItems = indicators?.map(ind => ({
         key: ind.id.toString(),
         value: ind.name,
-        target: ind.targetPerWeek // Optional: include target if needed
-    })) || []; // Fallback to empty array
+        target: ind.targetPerWeek
+    })) || [];
 
     // Handle indicator selection
     const handleIndicatorChange = (selectedKey) => {
@@ -119,7 +114,7 @@ const TeamMemberAddValueScreen = ({ navigation }) => {
         });
     };
 
-    // Handle form submission
+
     const handleSubmit = async () => {
         if (!formData.indicatorId || !formData.value.trim()) {
             Alert.alert('Error', 'Please select an indicator and enter a value');
@@ -159,7 +154,7 @@ const TeamMemberAddValueScreen = ({ navigation }) => {
         }
     };
 
-    // Initial data load
+
     useEffect(() => {
         getUserData();
     }, []);
@@ -174,7 +169,7 @@ const TeamMemberAddValueScreen = ({ navigation }) => {
         );
     }
 
-    // Main render
+
     return (
         <ScrollView
             style={styles.container}
@@ -198,7 +193,7 @@ const TeamMemberAddValueScreen = ({ navigation }) => {
 
             <View style={styles.contentContainer}>
                 <View style={styles.card}>
-                    {/* Indicator Selection */}
+
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Indicator</Text>
                         <View style={styles.inputWrapper}>
@@ -222,7 +217,7 @@ const TeamMemberAddValueScreen = ({ navigation }) => {
                         </View>
                     </View>
 
-                    {/* Value Input */}
+
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Value</Text>
                         <View style={styles.inputWrapper}>
@@ -242,7 +237,7 @@ const TeamMemberAddValueScreen = ({ navigation }) => {
                         </View>
                     </View>
 
-                    {/* Submit Button */}
+
                     <TouchableOpacity
                         style={[styles.button, styles.primaryButton]}
                         onPress={handleSubmit}
@@ -263,7 +258,7 @@ const TeamMemberAddValueScreen = ({ navigation }) => {
     );
 };
 
-// Styles
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,

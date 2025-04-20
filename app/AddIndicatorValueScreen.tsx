@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, ActivityIndicator, Dimensions, RefreshControl } from 'react-native';
 import { SelectList } from 'react-native-dropdown-select-list';
 import axios from 'axios';
-import { BarChart2, Building2, Hash, ArrowRight } from 'lucide-react-native';
+import { BarChart2, Building2, Hash, ArrowRight, AlertCircle } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
@@ -24,8 +24,8 @@ const AddIndicatorValueScreen = () => {
         submitting: false
     });
     const [refreshing, setRefreshing] = useState(false);
+    const [showInfo, setShowInfo] = useState(false);
 
-    // Prepare data for dropdowns
     const departmentItems = departments.map(dept => ({
         key: dept.departmentId.toString(),
         value: dept.departmentName
@@ -36,7 +36,6 @@ const AddIndicatorValueScreen = () => {
         value: ind.name
     }));
 
-    // Fetch departments
     const fetchData = async () => {
         try {
             setLoading(prev => ({ ...prev, departments: true }));
@@ -120,20 +119,38 @@ const AddIndicatorValueScreen = () => {
             });
 
             if (response.data.success) {
-                Alert.alert('Success', response.data.message);
-                setFormData(prev => ({
-                    ...prev,
-                    indicatorName: '',
-                    indicatorId: '',
-                    value: ''
-                }));
-                fetchData();
+                Alert.alert(
+                    'Success',
+                    response.data.message,
+                    [
+                        {
+                            text: 'OK',
+                            onPress: () => {
+                                setFormData(prev => ({
+                                    ...prev,
+                                    indicatorName: '',
+                                    indicatorId: '',
+                                    value: ''
+                                }));
+                                fetchData();
+                            }
+                        }
+                    ],
+                    { cancelable: false }
+                );
+
+                setShowInfo(true);
             } else {
                 Alert.alert('Error', response.data.message);
             }
         } catch (error) {
             console.error('Submission error:', error);
-            Alert.alert('Error', error.response?.data?.message || error.message || 'Failed to save value');
+            const errorMessage = error.response?.data?.message ||
+                (error.response?.data?.includes("Value for today already exists")
+                    ? "A value for today already exists for this indicator."
+                    : error.message || 'Failed to save value');
+
+            Alert.alert('Error', errorMessage);
         } finally {
             setLoading(prev => ({ ...prev, submitting: false }));
         }
@@ -173,8 +190,16 @@ const AddIndicatorValueScreen = () => {
             </LinearGradient>
 
             <View style={styles.contentContainer}>
+                {showInfo && (
+                    <View style={styles.infoBanner}>
+                        <AlertCircle size={20} color="#0056b3" />
+                        <Text style={styles.infoText}>
+                            Note: When adding a new value, any values older than 5 weeks are automatically removed.
+                        </Text>
+                    </View>
+                )}
+
                 <View style={styles.card}>
-                    {/* Department Section */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Department</Text>
                         <View style={styles.inputWrapper}>
@@ -195,7 +220,6 @@ const AddIndicatorValueScreen = () => {
                         </View>
                     </View>
 
-                    {/* Indicator Section */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Indicator</Text>
                         <View style={styles.inputWrapper}>
@@ -217,7 +241,6 @@ const AddIndicatorValueScreen = () => {
                         </View>
                     </View>
 
-                    {/* Value Section */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Value</Text>
                         <View style={styles.inputWrapper}>
@@ -237,7 +260,6 @@ const AddIndicatorValueScreen = () => {
                         </View>
                     </View>
 
-                    {/* Submit Button */}
                     <TouchableOpacity
                         style={[styles.button, styles.primaryButton]}
                         onPress={handleSubmit}
@@ -281,6 +303,21 @@ const styles = StyleSheet.create({
     contentContainer: {
         padding: 20,
         marginTop: -30,
+    },
+    infoBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#e6f2ff',
+        padding: 12,
+        borderRadius: 8,
+        marginBottom: 15,
+        borderLeftWidth: 4,
+        borderLeftColor: '#0056b3'
+    },
+    infoText: {
+        marginLeft: 10,
+        color: '#0056b3',
+        flex: 1,
     },
     card: {
         backgroundColor: '#fff',
