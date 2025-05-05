@@ -37,7 +37,8 @@ import * as SecureStore from "expo-secure-store";
 import TeamMemberAddValueScreen from "@/app/TeamMemberAddValueScreen";
 import IndicatorManagementScreen from "./IndicatorManagementScreen";
 import HistoryDashboard from "@/app/HistoryDashboard";
-
+import UpdateIndicatorValue from "./UpdateIndicatorValue";
+import userUpdateIndicatorValue from "./userUpdateIndicatorValue"
 const Drawer = createDrawerNavigator();
 
 const CustomDrawerContent = (props) => {
@@ -192,7 +193,6 @@ export default function Dashboard() {
 
             {userRole !== "VIEWER" && (
                 <>
-                    {/* Admin-specific screens */}
                     {userRole === "ADMIN" && (
                         <>
                             <Drawer.Screen
@@ -255,14 +255,24 @@ export default function Dashboard() {
                     )}
 
                     {userRole === "TEAM_MEMBER" && (
-                        <Drawer.Screen
-                            name="TeamMemberAddValue"
-                            component={TeamMemberAddValueScreen}
-                            options={{
-                                title: "Add Indicator Value",
-                                drawerIcon: ({ color, size }) => <BarChart3 size={size} color={color} />
-                            }}
-                        />
+                        <>
+                            <Drawer.Screen
+                                name="TeamMemberAddValue"
+                                component={TeamMemberAddValueScreen}
+                                options={{
+                                    title: "Add Indicator Value",
+                                    drawerIcon: ({ color, size }) => <BarChart3 size={size} color={color} />
+                                }}
+                            />
+                            <Drawer.Screen
+                                name="UpdateIndicatorValue"
+                                component={userUpdateIndicatorValue}
+                                options={{
+                                    title: "Update Indicator Value",
+                                    drawerIcon: ({ color, size }) => <BarChart3 size={size} color={color} />
+                                }}
+                            />
+                        </>
                     )}
                 </>
             )}

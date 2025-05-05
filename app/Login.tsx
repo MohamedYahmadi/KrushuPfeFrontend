@@ -71,17 +71,25 @@ const Login = () => {
     shared.value = withSpring(1);
   };
 
-  const saveCredentials = async (token: string, id: string, role: string, department: string | null) => {
+  const saveCredentials = async (token: string, id: string, role: string | null, department: string | null) => {
     try {
+      // Validate required fields
+      if (!token || !id) {
+        throw new Error('Missing required credentials');
+      }
+
+      // Default role if not provided
+      const normalizedRole = (role || 'GUEST').toUpperCase();
+
       if (Platform.OS === "web") {
         localStorage.setItem("token", token);
         localStorage.setItem("userId", id);
-        localStorage.setItem("role", role.toUpperCase()); // Normalize to uppercase
+        localStorage.setItem("role", normalizedRole);
         if (department) localStorage.setItem("department", department);
       } else {
         await SecureStore.setItemAsync("token", token);
         await SecureStore.setItemAsync("userId", id);
-        await SecureStore.setItemAsync("role", role.toUpperCase()); // Normalize to uppercase
+        await SecureStore.setItemAsync("role", normalizedRole);
         if (department) await SecureStore.setItemAsync("department", department);
       }
     } catch (error) {
@@ -101,16 +109,24 @@ const Login = () => {
       const response = await axios.post(
           "http://172.20.10.5:8080/api/user/login",
           { email, password },
-          { timeout: 10000 }
+          {
+            timeout: 10000,
+            validateStatus: (status) => status < 500 // Accept all status codes below 500
+          }
       );
 
       console.log("Login response:", response.data);
 
-      if (response.status === 200 && response.data?.token) {
+      if (response.data?.token) {
+        // Validate response data
+        if (!response.data.id) {
+          throw new Error("Server response missing user ID");
+        }
+
         await saveCredentials(
             response.data.token,
             String(response.data.id),
-            response.data.role,
+            response.data.role || null,
             response.data.department || null
         );
 
@@ -119,16 +135,24 @@ const Login = () => {
           routes: [{ name: "Dashboard" }],
         });
       } else {
-        throw new Error("Invalid server response format");
+        throw new Error(response.data?.message || "Invalid server response");
       }
     } catch (error) {
       console.error("Login error:", error);
       let errorMessage = "Login failed. Please try again.";
 
       if (axios.isAxiosError(error)) {
-        errorMessage = error.response?.data?.message ||
-            error.message ||
-            "Network error occurred";
+        // Handle Axios-specific errors
+        if (error.response) {
+          errorMessage = error.response.data?.message ||
+              `Server error: ${error.response.status}`;
+        } else if (error.request) {
+          errorMessage = "Network error - no response received";
+        } else {
+          errorMessage = error.message || "Network error occurred";
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
       }
 
       Alert.alert("Login Failed", errorMessage);

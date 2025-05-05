@@ -18,12 +18,10 @@ import Animated, {
   FadeInRight,
   withSpring,
   useAnimatedStyle,
-  withSequence,
-  withDelay,
-  withTiming,
   useSharedValue,
 } from 'react-native-reanimated';
 import { useFonts, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
+import img_1 from "../assets/images/img_1.png";
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
     RootStackParamList,

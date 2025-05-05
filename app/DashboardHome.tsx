@@ -43,31 +43,42 @@ const DashBoardHome = () => {
       setLoading(true);
       const response = await axios.get(API_URL);
 
+      // Get current date and set to start of day
       const now = new Date();
-      const dayOfWeek = now.getDay();
+      now.setHours(0, 0, 0, 0);
+
+      // Calculate Monday of current week (start of day)
       const monday = new Date(now);
-      monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+      monday.setDate(now.getDate() - (now.getDay() === 0 ? 6 : now.getDay() - 1));
       monday.setHours(0, 0, 0, 0);
 
       const transformedData = response.data.map(dept => ({
         id: dept.departmentId,
         name: dept.departmentName.trim(),
         indicators: (dept.indicators || []).map(ind => {
-
+          // Initialize values array with target and empty days
           const values = [
             ind.targetPerWeek,
             ...Array(6).fill(null)
           ];
 
-
+          // Process daily values
           (ind.dailyValues || []).forEach(dailyValue => {
-            const date = new Date(dailyValue.date);
-            if (date >= monday) {
-              const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
-              const dayIndex = dayIndexMap[dayName];
-              if (dayIndex && dayIndex <= 6) {
-                values[dayIndex] = dailyValue.value;
+            try {
+              // Parse date and normalize to start of day
+              const date = new Date(dailyValue.date);
+              date.setHours(0, 0, 0, 0);
+
+              // Only process if date is within current week
+              if (date >= monday) {
+                const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+                const dayIndex = dayIndexMap[dayName];
+                if (dayIndex && dayIndex <= 6) {
+                  values[dayIndex] = dailyValue.value;
+                }
               }
+            } catch (e) {
+              console.error('Error processing daily value:', e);
             }
           });
 
@@ -83,8 +94,8 @@ const DashBoardHome = () => {
       setDepartments(transformedData);
       setError(null);
     } catch (err) {
-      setError(err.message);
       console.error('Error fetching data:', err);
+      setError(err.response?.data?.message || err.message || 'Failed to load data');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -93,6 +104,10 @@ const DashBoardHome = () => {
 
   useEffect(() => {
     fetchDepartments();
+
+    // Refresh data every minute to catch new entries
+    const interval = setInterval(fetchDepartments, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   const onRefresh = () => {
@@ -103,16 +118,18 @@ const DashBoardHome = () => {
   const handlePrevCategory = () => {
     if (activeCategory > 0) {
       setActiveCategory(activeCategory - 1);
+      scrollViewRef.current?.scrollTo({ x: 0, animated: true });
     }
   };
 
   const handleNextCategory = () => {
     if (activeCategory < departments.length - 1) {
       setActiveCategory(activeCategory + 1);
+      scrollViewRef.current?.scrollTo({ x: 0, animated: true });
     }
   };
 
-  if (loading) {
+  if (loading && departments.length === 0) {
     return (
         <View style={[styles.container, styles.centerContainer]}>
           <Text>Loading data...</Text>
@@ -124,6 +141,12 @@ const DashBoardHome = () => {
     return (
         <View style={[styles.container, styles.centerContainer]}>
           <Text style={styles.errorText}>Error: {error}</Text>
+          <TouchableOpacity
+              style={styles.retryButton}
+              onPress={fetchDepartments}
+          >
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
         </View>
     );
   }
@@ -210,7 +233,6 @@ const DashBoardHome = () => {
                   <Text style={styles.headerText}>Top waste per day - Reasons</Text>
                 </View>
               </View>
-
 
               {departments[activeCategory]?.indicators?.map((indicator, index) => (
                   <View key={`indicator-${indicator.id || index}`} style={styles.metricRow}>
