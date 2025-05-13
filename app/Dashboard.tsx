@@ -244,6 +244,14 @@ export default function Dashboard() {
                                 }}
                             />
                             <Drawer.Screen
+                                name="UpdateIndicatorValue"
+                                component={UpdateIndicatorValue}
+                                options={{
+                                    title: "Update Indicator Value",
+                                    drawerIcon: ({ color, size }) => <BarChart3 size={size} color={color} />
+                                }}
+                                />
+                            <Drawer.Screen
                                 name="weeklyReport"
                                 component={HistoryDashboard}
                                 options={{

@@ -1,35 +1,89 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Text, RefreshControl } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Text,
+  RefreshControl,
+  ActivityIndicator,
+  Alert,
+  Platform,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import axios from 'axios';
+import * as SecureStore from 'expo-secure-store';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import WasteReasonModal from './Components/WasteReasonModal';
+import ActionItemModal from './/Components/ActionItemModal';
+import { SelectList } from 'react-native-dropdown-select-list';
 
-const API_URL = 'http://172.20.10.5:8080/api/admin/indicators-by-department';
+// API endpoints
+const ADMIN_API_BASE = 'http://172.20.10.5:8080/api/admin';
+const USER_API_BASE = 'http://172.20.10.5:8080/api/user';
+const DEPARTMENTS_API = 'http://172.20.10.5:8080/api/admin/indicators-by-department';
 
-const DashBoardHome = () => {
+interface Department {
+  id: number;
+  name: string;
+  indicators: Indicator[];
+  wasteReasons: WasteReason[];
+  actionItems: ActionItem[];
+}
+
+interface Indicator {
+  id: number;
+  name: string;
+  targetPerWeek: number;
+  dailyValues: DailyValue[];
+  values: (string | null)[];
+}
+
+interface DailyValue {
+  day: string;
+  value: string;
+}
+
+interface WasteReason {
+  id: number;
+  reason: string;
+  createdAt: string;
+}
+
+interface ActionItem {
+  id: number;
+  action: string;
+  createdAt: string;
+}
+
+interface UserData {
+  id: number | null;
+  role: string | null;
+  department: string | null;
+}
+
+const DashBoardHome = ({ navigation }: { navigation: any }) => {
   const insets = useSafeAreaInsets();
   const [activeCategory, setActiveCategory] = useState(0);
-  const [departments, setDepartments] = useState([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const scrollViewRef = useRef(null);
-  const windowWidth = Dimensions.get('window').width;
+  const [isAdding, setIsAdding] = useState(false);
+  const [selectedDepartment, setSelectedDepartment] = useState('');
+  const [userData, setUserData] = useState<UserData>({
+    id: null,
+    role: null,
+    department: null
+  });
+  const [allDepartments, setAllDepartments] = useState<{key: string, value: string}[]>([]);
+  const [wasteModalVisible, setWasteModalVisible] = useState(false);
+  const [actionModalVisible, setActionModalVisible] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const days = ['Target', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
-  const actionItems = [
-    "1) Assurer do no speed, la documentation - selon la variante",
-    "2) Ajustement Machine + Supervision avec la variante",
-    "3) Simplification workflow by process & travail (Supervision) avec la variante"
-  ];
-
-  const topWasteReasons = [
-    "1) Scrap vs Unpack",
-    "2) Downtime / Waiting",
-    "3) Inventory"
-  ];
-
-  const dayIndexMap = {
+  const dayIndexMap: Record<string, number> = {
     'Monday': 1,
     'Tuesday': 2,
     'Wednesday': 3,
@@ -38,44 +92,77 @@ const DashBoardHome = () => {
     'Saturday': 6
   };
 
+  const getSecureItem = async (key: string): Promise<string | null> => {
+    try {
+      if (Platform.OS === 'web') {
+        return localStorage.getItem(key);
+      } else {
+        return await SecureStore.getItemAsync(key);
+      }
+    } catch (error) {
+      console.error(`Error getting ${key}:`, error);
+      return null;
+    }
+  };
+
+  const fetchUserData = async (): Promise<UserData | null> => {
+    try {
+      const id = await getSecureItem('userId');
+      const role = await getSecureItem('role');
+      const department = await getSecureItem('department');
+
+      if (!id || !role || !department) {
+        throw new Error('User data not found');
+      }
+
+      const user = {
+        id: parseInt(id),
+        role: role.toUpperCase(),
+        department
+      };
+
+      setUserData(user);
+      return user;
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      setError('Failed to load user data');
+      navigation.navigate('Login');
+      return null;
+    }
+  };
+
   const fetchDepartments = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(API_URL);
+      const user = await fetchUserData();
+      if (!user) return;
 
-      // Get current date and set to start of day
-      const now = new Date();
-      now.setHours(0, 0, 0, 0);
+      const response = await axios.get(DEPARTMENTS_API);
 
-      // Calculate Monday of current week (start of day)
-      const monday = new Date(now);
-      monday.setDate(now.getDate() - (now.getDay() === 0 ? 6 : now.getDay() - 1));
-      monday.setHours(0, 0, 0, 0);
+      // Format departments for SelectList
+      const formattedDepts = response.data.map((dept: any) => ({
+        key: dept.departmentName.trim(),
+        value: dept.departmentName.trim()
+      }));
+      setAllDepartments(formattedDepts);
 
-      const transformedData = response.data.map(dept => ({
+      const transformedData = response.data.map((dept: any) => ({
         id: dept.departmentId,
         name: dept.departmentName.trim(),
-        indicators: (dept.indicators || []).map(ind => {
-          // Initialize values array with target and empty days
+        indicators: (dept.indicators || []).map((ind: any) => {
           const values = [
             ind.targetPerWeek,
             ...Array(6).fill(null)
           ];
 
-          // Process daily values
-          (ind.dailyValues || []).forEach(dailyValue => {
+          (ind.dailyValues || []).forEach((dailyValue: any) => {
             try {
-              // Parse date and normalize to start of day
-              const date = new Date(dailyValue.date);
+              const date = new Date(dailyValue.day);
               date.setHours(0, 0, 0, 0);
-
-              // Only process if date is within current week
-              if (date >= monday) {
-                const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
-                const dayIndex = dayIndexMap[dayName];
-                if (dayIndex && dayIndex <= 6) {
-                  values[dayIndex] = dailyValue.value;
-                }
+              const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+              const dayIndex = dayIndexMap[dayName];
+              if (dayIndex && dayIndex <= 6) {
+                values[dayIndex] = dailyValue.value;
               }
             } catch (e) {
               console.error('Error processing daily value:', e);
@@ -85,15 +172,22 @@ const DashBoardHome = () => {
           return {
             id: ind.id,
             name: ind.name,
-            target: ind.targetPerWeek,
+            targetPerWeek: ind.targetPerWeek,
+            dailyValues: ind.dailyValues,
             values: values
           };
-        })
+        }),
+        wasteReasons: dept.wasteReasons || [],
+        actionItems: dept.actionItems || []
       }));
 
       setDepartments(transformedData);
       setError(null);
-    } catch (err) {
+
+      if (user.role === 'ADMIN' && transformedData.length > 0) {
+        setSelectedDepartment(transformedData[0]?.name);
+      }
+    } catch (err: any) {
       console.error('Error fetching data:', err);
       setError(err.response?.data?.message || err.message || 'Failed to load data');
     } finally {
@@ -102,13 +196,94 @@ const DashBoardHome = () => {
     }
   };
 
-  useEffect(() => {
-    fetchDepartments();
+  const addWasteReason = async (reason: string, departmentName: string) => {
+    setIsAdding(true);
+    try {
+      const { id, role } = userData;
+      if (!id) throw new Error('User ID not found');
 
-    // Refresh data every minute to catch new entries
-    const interval = setInterval(fetchDepartments, 60000);
+      // For team members, use their own department
+      const deptToUse = role === 'TEAM_MEMBER' && userData.department
+          ? userData.department
+          : departmentName;
+
+      const apiUrl = role === 'ADMIN'
+          ? `${ADMIN_API_BASE}/create-waste-reasons/${id}`
+          : `${USER_API_BASE}/team-member/create-waste-reasons/${id}`;
+
+      const requestData = role === 'ADMIN'
+          ? { reasons: [reason], departmentName: deptToUse }
+          : { reasons: [reason] };
+
+      await axios.post(apiUrl, requestData);
+      setWasteModalVisible(false);
+      fetchDepartments();
+      Alert.alert('Success', 'Waste reason added successfully');
+    } catch (err: any) {
+      console.error('Error adding waste reason:', err);
+      Alert.alert('Error', err.response?.data?.message || 'Failed to add waste reason');
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  const addActionItem = async (action: string, departmentName: string) => {
+    setIsAdding(true);
+    try {
+      const { id, role } = userData;
+      if (!id) throw new Error('User ID not found');
+
+      // For team members, use their own department
+      const deptToUse = role === 'TEAM_MEMBER' && userData.department
+          ? userData.department
+          : departmentName;
+
+      const apiUrl = role === 'ADMIN'
+          ? `${ADMIN_API_BASE}/create-action-items/${id}`
+          : `${USER_API_BASE}/team-member/create-action-items/${id}`;
+
+      const requestData = role === 'ADMIN'
+          ? { action, departmentName: deptToUse }
+          : { action };
+
+      await axios.post(apiUrl, requestData);
+      setActionModalVisible(false);
+      fetchDepartments();
+      Alert.alert('Success', 'Action item added successfully');
+    } catch (err: any) {
+      console.error('Error adding action item:', err);
+      Alert.alert('Error', err.response?.data?.message || 'Failed to add action item');
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  useEffect(() => {
+    const initializeData = async () => {
+      const user = await fetchUserData();
+      if (user) {
+        await fetchDepartments();
+      }
+    };
+    initializeData();
+
+    const interval = setInterval(fetchDepartments, 300000); // Refresh every 5 minutes
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (departments.length > 0 && userData.department) {
+      const currentDept = userData.role === 'ADMIN'
+          ? selectedDepartment || departments[0]?.name
+          : userData.department;
+      if (currentDept) {
+        const deptIndex = departments.findIndex(d => d.name === currentDept);
+        if (deptIndex >= 0) {
+          setActiveCategory(deptIndex);
+        }
+      }
+    }
+  }, [departments, selectedDepartment, userData.department]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -131,19 +306,23 @@ const DashBoardHome = () => {
 
   if (loading && departments.length === 0) {
     return (
-        <View style={[styles.container, styles.centerContainer]}>
-          <Text>Loading data...</Text>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#4A6FA5" />
         </View>
     );
   }
 
   if (error) {
     return (
-        <View style={[styles.container, styles.centerContainer]}>
+        <View style={styles.errorContainer}>
+          <MaterialCommunityIcons name="alert-circle" size={48} color="#E74C3C" />
           <Text style={styles.errorText}>Error: {error}</Text>
           <TouchableOpacity
               style={styles.retryButton}
-              onPress={fetchDepartments}
+              onPress={() => {
+                setError(null);
+                fetchDepartments();
+              }}
           >
             <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
@@ -153,353 +332,464 @@ const DashBoardHome = () => {
 
   if (departments.length === 0) {
     return (
-        <View style={[styles.container, styles.centerContainer]}>
-          <Text>No data available</Text>
+        <View style={styles.emptyContainer}>
+          <MaterialCommunityIcons name="database-remove" size={48} color="#95A5A6" />
+          <Text style={styles.emptyText}>No data available</Text>
         </View>
     );
   }
 
-  const tableWidth = 150 + (days.length * 80) + 200;
-  const isTableWiderThanScreen = tableWidth > windowWidth;
+  const currentDepartment = departments[activeCategory];
+  const isAdmin = userData.role === 'ADMIN';
 
   return (
-      <ScrollView
-          contentContainerStyle={styles.scrollContainer}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                colors={["#6200ee"]}
-            />
-          }
-      >
-        <View style={[styles.container, { paddingTop: insets.top }]}>
-          {/* Header */}
-          <View style={styles.header}>
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={[styles.header, { paddingTop: insets.top }]}>
+          <View style={styles.headerContent}>
             <View style={styles.logoContainer}>
-              <Text style={styles.logoText}>KS</Text>
-              <View>
-                <Text style={styles.logoSubtitle}>Production</Text>
-                <Text style={styles.logoSubtitle}>System</Text>
-              </View>
+              <MaterialCommunityIcons name="factory" size={28} color="#4A6FA5" />
+              <Text style={styles.logoText}>KS Production</Text>
             </View>
-            <Text style={styles.headerTitle}>Shop Floor Management Foaming PROJECT</Text>
+            <Text style={styles.headerTitle}>Foaming Project Dashboard</Text>
           </View>
+        </View>
 
-          <View style={styles.categoryNavigation}>
-            <TouchableOpacity
-                style={[styles.navButton, activeCategory === 0 && styles.navButtonDisabled]}
-                onPress={handlePrevCategory}
-                disabled={activeCategory === 0}
-            >
-              <Text style={styles.navButtonText}>{"<"}</Text>
-            </TouchableOpacity>
-            <Text style={styles.categoryTitle}>{departments[activeCategory]?.name}</Text>
-            <TouchableOpacity
-                style={[styles.navButton, activeCategory === departments.length - 1 && styles.navButtonDisabled]}
-                onPress={handleNextCategory}
-                disabled={activeCategory === departments.length - 1}
-            >
-              <Text style={styles.navButtonText}>{">"}</Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              ref={scrollViewRef}
-              style={styles.horizontalScrollView}
+        {/* Department Selector */}
+        <View style={styles.departmentSelector}>
+          <TouchableOpacity
+              style={[styles.navButton, activeCategory === 0 && styles.navButtonDisabled]}
+              onPress={handlePrevCategory}
+              disabled={activeCategory === 0}
           >
-            <View style={styles.tableContainer}>
-              {/* Table Header */}
-              <View style={styles.tableHeader}>
-                <View style={styles.categoryCell}>
-                  <Text style={styles.headerText}>KPI</Text>
-                </View>
-                {days.map((day, index) => (
-                    <View
-                        key={`day-${index}`}
-                        style={[
-                          styles.dayCell,
-                          day === 'Target' ? styles.targetCell : null,
-                          index === 0 ? styles.firstColumn : null,
-                        ]}
-                    >
-                      <Text style={styles.headerText}>{day}</Text>
-                    </View>
-                ))}
-                <View style={[styles.notesCell, styles.lastColumn]}>
-                  <Text style={styles.headerText}>Top waste per day - Reasons</Text>
-                </View>
-              </View>
+            <MaterialCommunityIcons name="chevron-left" size={24} color="#4A6FA5" />
+          </TouchableOpacity>
 
-              {departments[activeCategory]?.indicators?.map((indicator, index) => (
-                  <View key={`indicator-${indicator.id || index}`} style={styles.metricRow}>
-                    <View style={styles.categoryCell}>
-                      <Text style={styles.metricText}>{indicator.name}</Text>
+          <Text style={styles.departmentTitle}>{currentDepartment?.name}</Text>
+
+          <TouchableOpacity
+              style={[styles.navButton, activeCategory === departments.length - 1 && styles.navButtonDisabled]}
+              onPress={handleNextCategory}
+              disabled={activeCategory === departments.length - 1}
+          >
+            <MaterialCommunityIcons name="chevron-right" size={24} color="#4A6FA5" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Main Content */}
+        <ScrollView
+            contentContainerStyle={styles.scrollContainer}
+            refreshControl={
+              <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  colors={["#4A6FA5"]}
+              />
+            }
+            ref={scrollViewRef}
+        >
+          {/* KPIs Table */}
+          {currentDepartment?.indicators?.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Weekly Performance</Text>
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                >
+                  <View style={styles.table}>
+                    {/* Table Header */}
+                    <View style={styles.tableHeader}>
+                      <View style={[styles.tableHeaderCell, styles.firstColumn]}>
+                        <Text style={styles.tableHeaderText}>KPI</Text>
+                      </View>
+                      {days.map((day, index) => (
+                          <View
+                              key={`day-${index}`}
+                              style={[
+                                styles.tableHeaderCell,
+                                day === 'Target' && styles.targetCell,
+                              ]}
+                          >
+                            <Text style={styles.tableHeaderText}>{day}</Text>
+                          </View>
+                      ))}
                     </View>
-                    {indicator.values.map((value, valueIndex) => (
-                        <View
-                            key={`value-${valueIndex}`}
-                            style={[
-                              styles.valueCell,
-                              valueIndex === 0 ? styles.targetCell : null,
-                              valueIndex === 0 ? styles.firstColumn : null,
-                            ]}
-                        >
-                          <Text style={styles.valueText}>
-                            {value !== null ? value : '-'}
-                          </Text>
+
+                    {/* Table Rows */}
+                    {currentDepartment.indicators.map((indicator, index) => (
+                        <View key={`indicator-${indicator.id || index}`} style={styles.tableRow}>
+                          <View style={[styles.tableCell, styles.firstColumn]}>
+                            <Text style={styles.metricText}>{indicator.name}</Text>
+                          </View>
+                          {indicator.values.map((value, valueIndex) => (
+                              <View
+                                  key={`value-${valueIndex}`}
+                                  style={[
+                                    styles.tableCell,
+                                    valueIndex === 0 && styles.targetCell,
+                                  ]}
+                              >
+                                <Text style={styles.valueText}>
+                                  {value !== null ? value : '-'}
+                                </Text>
+                              </View>
+                          ))}
                         </View>
                     ))}
-                    {index < topWasteReasons.length ? (
-                        <View style={[styles.notesCell, styles.lastColumn]}>
-                          <Text style={styles.notesText}>{topWasteReasons[index]}</Text>
-                        </View>
-                    ) : (
-                        <View style={[styles.notesCell, styles.lastColumn]} />
-                    )}
                   </View>
-              ))}
-            </View>
-          </ScrollView>
-
-          {isTableWiderThanScreen && (
-              <View style={styles.scrollIndicator}>
-                <Text style={styles.scrollIndicatorText}>← Swipe to see more →</Text>
+                </ScrollView>
               </View>
           )}
 
-          <View style={styles.actionSection}>
-            <View style={styles.actionHeader}>
-              <Text style={styles.actionHeaderText}>Action Settings</Text>
+          {/* Waste Reasons Card */}
+          <View style={styles.fullWidthCard}>
+            <View style={styles.cardHeader}>
+              <MaterialCommunityIcons name="alert-octagon" size={20} color="#E74C3C" />
+              <Text style={styles.cardTitle}>Top Waste Reasons</Text>
+              {userData.role !== 'VIEWER' && (
+                <TouchableOpacity
+                  style={styles.addIcon}
+                  onPress={() => setWasteModalVisible(true)}
+                >
+                  <MaterialCommunityIcons name="plus" size={24} color="#4A6FA5" />
+                </TouchableOpacity>
+              )}
             </View>
-            <View style={styles.actionSubHeader}>
-              <Text style={styles.actionSubHeaderText}>Action</Text>
-            </View>
-            <View style={styles.actionItems}>
-              {actionItems.map((item, index) => (
-                  <Text key={`action-${index}`} style={styles.actionItemText}>{item}</Text>
-              ))}
+
+            <View style={styles.cardContent}>
+              {currentDepartment?.wasteReasons?.length > 0 ? (
+                currentDepartment.wasteReasons.map((reason, index) => (
+                  <View key={`waste-${index}`} style={styles.listItem}>
+                    <Text style={styles.listBullet}>{index + 1}.</Text>
+                    <Text style={styles.listText}>{reason.reason}</Text>
+                    <Text style={styles.actionTime}>
+                      {new Date(reason.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.emptyListText}>No waste reasons found</Text>
+              )}
             </View>
           </View>
-        </View>
-      </ScrollView>
+
+          {/* Action Items Card */}
+          <View style={styles.fullWidthCard}>
+            <View style={styles.cardHeader}>
+              <MaterialCommunityIcons name="clipboard-list" size={20} color="#3498DB" />
+              <Text style={styles.cardTitle}>Action Items</Text>
+              {userData.role !== 'VIEWER' && (
+                <TouchableOpacity
+                  style={styles.addIcon}
+                  onPress={() => setActionModalVisible(true)}
+                >
+                  <MaterialCommunityIcons name="plus" size={24} color="#4A6FA5" />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <View style={styles.cardContent}>
+              {currentDepartment?.actionItems?.length > 0 ? (
+                currentDepartment.actionItems.map((item, index) => (
+                  <View key={`action-${index}`} style={styles.actionItem}>
+                    <Text style={styles.actionText}>{item.action}</Text>
+                    <View style={styles.actionMeta}>
+                      <Text style={styles.actionTime}>
+                        {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </Text>
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.emptyListText}>No action items found</Text>
+              )}
+            </View>
+          </View>
+        </ScrollView>
+
+        {/* Modals */}
+        <WasteReasonModal
+            visible={wasteModalVisible}
+            onClose={() => setWasteModalVisible(false)}
+            onSubmit={addWasteReason}
+            isAdding={isAdding}
+            departments={allDepartments.map(d => d.value)}
+            userRole={userData.role || ''}
+            userDepartment={userData.department || ''}
+        />
+
+        <ActionItemModal
+            visible={actionModalVisible}
+            onClose={() => setActionModalVisible(false)}
+            onSubmit={addActionItem}
+            isAdding={isAdding}
+            departments={allDepartments.map(d => d.value)}
+            userRole={userData.role || ''}
+            userDepartment={userData.department || ''}
+        />
+      </View>
   );
 };
 
 const styles = StyleSheet.create({
-  scrollContainer: {
-    flexGrow: 1,
-  },
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#F8F9FA',
   },
-  centerContainer: {
+  loadingContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+  },
+  errorContainer: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    padding: 20,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
   },
   errorText: {
-    color: 'red',
+    color: '#E74C3C',
+    fontSize: 16,
+    marginVertical: 16,
+    textAlign: 'center',
+  },
+  emptyText: {
+    color: '#95A5A6',
+    fontSize: 16,
+    marginTop: 16,
+  },
+  emptyListText: {
+    color: '#95A5A6',
+    fontSize: 14,
+    textAlign: 'center',
+    marginVertical: 16,
+  },
+  retryButton: {
+    backgroundColor: '#4A6FA5',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontWeight: '600',
   },
   header: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-    flexDirection: 'row',
-    alignItems: 'center',
-    elevation: 2,
+    backgroundColor: 'white',
+    paddingBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 3,
+    shadowRadius: 8,
+    elevation: 3,
+    zIndex: 10,
+  },
+  headerContent: {
+    paddingHorizontal: 20,
   },
   logoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 20,
+    marginBottom: 8,
   },
   logoText: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#6b4c8c',
-    marginRight: 5,
-  },
-  logoSubtitle: {
-    fontSize: 12,
-    color: '#6b4c8c',
-    lineHeight: 14,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#4A6FA5',
+    marginLeft: 8,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    flex: 1,
+    fontSize: 16,
+    color: '#7F8C8D',
+    fontWeight: '500',
   },
-  categoryNavigation: {
+  departmentSelector: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    backgroundColor: '#fff',
+    paddingVertical: 16,
+    backgroundColor: 'white',
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#ECF0F1',
+  },
+  pickerContainer: {
+    backgroundColor: 'white',
+    marginHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 8,
+    paddingHorizontal: 10,
+  },
+  selectBox: {
+    borderWidth: 1,
+    borderColor: '#ECF0F1',
+    borderRadius: 8,
+  },
+  selectInput: {
+    fontSize: 14,
+    color: '#2C3E50',
+  },
+  selectDropdown: {
+    borderWidth: 1,
+    borderColor: '#ECF0F1',
+    borderRadius: 8,
+    marginTop: 5,
+  },
+  departmentTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2C3E50',
+    marginHorizontal: 20,
+  },
+  scrollContainer: {
+    paddingBottom: 20,
+  },
+  section: {
+    margin: 16,
+    marginBottom: 8,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2C3E50',
+    marginBottom: 12,
+  },
+  table: {
+    borderRadius: 12,
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#4A6FA5',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  tableHeaderCell: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    minWidth: 100,
+  },
+  tableHeaderText: {
+    color: 'white',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  targetCell: {
+    backgroundColor: '#3A5A80',
+  },
+  tableRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#ECF0F1',
+  },
+  tableCell: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    minWidth: 100,
+    justifyContent: 'center',
+  },
+  firstColumn: {
+    minWidth: 150,
+    maxWidth: 150,
+    borderRightWidth: 1,
+    borderRightColor: '#ECF0F1',
+  },
+  metricText: {
+    fontSize: 14,
+    color: '#2C3E50',
+    fontWeight: '500',
+  },
+  valueText: {
+    fontSize: 14,
+    color: '#2C3E50',
+    textAlign: 'center',
+  },
+  fullWidthCard: {
+    borderRadius: 12,
+    backgroundColor: 'white',
+    marginHorizontal: 16,
+    marginVertical: 8,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ECF0F1',
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2C3E50',
+    marginLeft: 8,
+  },
+  cardContent: {
+    marginBottom: 12,
+  },
+  listItem: {
+    flexDirection: 'row',
+    marginBottom: 8,
+    alignItems: 'center',
+  },
+  listBullet: {
+    color: '#E74C3C',
+    fontWeight: 'bold',
+    marginRight: 8,
+    width: 20,
+  },
+  listText: {
+    flex: 1,
+    color: '#34495E',
+    fontSize: 14,
+  },
+  actionItem: {
+    marginBottom: 12,
+  },
+  actionText: {
+    color: '#34495E',
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  actionMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  actionTime: {
+    color: '#95A5A6',
+    fontSize: 12,
+    marginLeft: 8,
+  },
+  addIcon: {
+    marginLeft: 'auto',
+    padding: 8,
   },
   navButton: {
     padding: 8,
     borderRadius: 20,
-    backgroundColor: '#f0f0f0',
-    marginHorizontal: 10,
   },
   navButtonDisabled: {
-    backgroundColor: '#f8f8f8',
-  },
-  navButtonText: {
-    fontSize: 18,
-    color: '#6b4c8c',
-  },
-  categoryTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#6b4c8c',
-    paddingHorizontal: 20,
-  },
-  horizontalScrollView: {
-    flex: 1,
-  },
-  tableContainer: {
-    margin: 16,
-    borderRadius: 8,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    backgroundColor: '#fff',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: '#6b4c8c',
-  },
-  categoryCell: {
-    width: 150,
-    padding: 12,
-    borderRightWidth: 1,
-    borderRightColor: '#8a6bab',
-    justifyContent: 'center',
-  },
-  dayCell: {
-    width: 80,
-    padding: 12,
-    borderRightWidth: 1,
-    borderRightColor: '#8a6bab',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  targetCell: {
-    backgroundColor: '#8a6bab',
-  },
-  firstColumn: {
-    borderLeftWidth: 2,
-    borderLeftColor: '#8a6bab',
-  },
-  lastColumn: {
-    borderRightWidth: 2,
-    borderRightColor: '#8a6bab',
-  },
-  notesCell: {
-    width: 200,
-    padding: 12,
-    justifyContent: 'center',
-  },
-  headerText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  metricRow: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-  },
-  metricText: {
-    fontSize: 14,
-    color: '#333',
-  },
-  valueCell: {
-    width: 80,
-    padding: 12,
-    borderRightWidth: 1,
-    borderRightColor: '#e0e0e0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  valueText: {
-    fontSize: 14,
-    textAlign: 'center',
-    color: '#333',
-  },
-  notesText: {
-    fontSize: 14,
-    color: '#333',
-  },
-  scrollIndicator: {
-    alignItems: 'center',
-    paddingVertical: 8,
-    backgroundColor: 'rgba(107, 76, 140, 0.1)',
-  },
-  scrollIndicatorText: {
-    fontSize: 12,
-    color: '#6b4c8c',
-  },
-  actionSection: {
-    margin: 16,
-    borderRadius: 8,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    backgroundColor: '#fff',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  actionHeader: {
-    backgroundColor: '#6b4c8c',
-    padding: 12,
-  },
-  actionHeaderText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  actionSubHeader: {
-    backgroundColor: '#8a6bab',
-    padding: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#ccc',
-  },
-  actionSubHeaderText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  actionItems: {
-    padding: 16,
-  },
-  actionItemText: {
-    fontSize: 14,
-    marginBottom: 10,
-    color: '#333',
+    opacity: 0.5,
   },
 });
 
