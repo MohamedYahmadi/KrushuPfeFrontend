@@ -10,47 +10,71 @@ import {
   ScrollView,
   Platform,
   KeyboardAvoidingView,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import * as SecureStore from "expo-secure-store";
 
-export function ProfileUpdateModal(props) {
-  const [data, setData] = useState({
-    firstName: props.user.firstName,
-    lastName: props.user.lastName,
-    email: props.user.email,
-    registrationNumber: props.user.registrationNumber,
-    department: props.user.department,
-  });
+interface ProfileUpdateModalProps {
+  visible: boolean;
+  user: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    registrationNumber: string;
+    department: string;
+  };
+  onClose: () => void;
+  onSubmit: (data: any) => void;
+}
 
-  const retrieveId = () => {
+export function ProfileUpdateModal({ visible, user, onClose, onSubmit }: ProfileUpdateModalProps) {
+  const [data, setData] = useState({
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+    registrationNumber: user.registrationNumber,
+    department: user.department,
+  });
+  const [loading, setLoading] = useState(false);
+
+  const retrieveId = async () => {
     if (Platform.OS === "web") {
-      let userId = localStorage.getItem("userId");
-      let token = localStorage.getItem("token");
+      const userId = localStorage.getItem("userId");
+      const token = localStorage.getItem("token");
       return { userId, token };
     } else {
-      let userId = SecureStore.getItem("userId");
-      let token = SecureStore.getItem("token");
+      const userId = await SecureStore.getItemAsync("userId");
+      const token = await SecureStore.getItemAsync("token");
       return { userId, token };
     }
   };
 
-  const submitChanges = () => {
-    let { userId, token } = retrieveId();
+  const submitChanges = async () => {
+    setLoading(true);
+    try {
+      const { userId } = await retrieveId();
+      if (!userId) throw new Error("User ID not found");
 
-    axios
-        .put(`http://172.20.10.5:8080/api/admin/update-profile/${userId}`, data)
-        .then(() => {
-          props.onClose();
-          props.onSubmit(data);
-        })
-        .catch((error) => {
-          console.error("Error updating profile:", error);
-        });
+      await axios.put(
+          `http://172.20.10.5:8080/api/admin/update-profile/${userId}`,
+          data
+      );
+
+      onSubmit(data);
+      Alert.alert("Success", "Profile updated successfully!");
+      onClose();
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      Alert.alert("Error", "Failed to update profile");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
       <View style={styles.container}>
-        <Modal visible={props.visible} animationType="slide" transparent={true}>
+        <Modal visible={visible} animationType="slide" transparent={true}>
           <KeyboardAvoidingView
               behavior={Platform.OS === "ios" ? "padding" : "height"}
               style={styles.keyboardAvoidingView}
@@ -59,10 +83,8 @@ export function ProfileUpdateModal(props) {
               <View style={styles.modalContent}>
                 <View style={styles.header}>
                   <Text style={styles.title}>Update User Profile</Text>
-                  <TouchableOpacity>
-                    <Text style={styles.closeButton} onPress={props.onClose}>
-                      ✕
-                    </Text>
+                  <TouchableOpacity onPress={onClose}>
+                    <Text style={styles.closeButton}>✕</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -97,6 +119,7 @@ export function ProfileUpdateModal(props) {
                         onChangeText={(value) =>
                             setData((old) => ({ ...old, email: value }))
                         }
+                        keyboardType="email-address"
                     />
                   </View>
 
@@ -123,10 +146,15 @@ export function ProfileUpdateModal(props) {
                   </View>
 
                   <TouchableOpacity
-                      style={styles.submitButton}
+                      style={[styles.submitButton, loading && styles.disabledButton]}
                       onPress={submitChanges}
+                      disabled={loading}
                   >
-                    <Text style={styles.submitButtonText}>Submit</Text>
+                    {loading ? (
+                        <ActivityIndicator color="white" />
+                    ) : (
+                        <Text style={styles.submitButtonText}>Submit</Text>
+                    )}
                   </TouchableOpacity>
                 </ScrollView>
               </View>
@@ -200,10 +228,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 10,
   },
+  disabledButton: {
+    opacity: 0.7,
+  },
   submitButtonText: {
     color: "white",
     fontSize: 16,
     fontWeight: "600",
   },
 });
+
 export default ProfileUpdateModal;

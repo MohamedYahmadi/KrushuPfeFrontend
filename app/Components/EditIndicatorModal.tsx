@@ -113,10 +113,10 @@ const EditIndicatorModal: React.FC<EditIndicatorModalProps> = ({
                             value={formData.targetPerWeek}
                             onChangeText={(text) => setFormData(prev => ({
                                 ...prev,
-                                targetPerWeek: text.replace(/[^0-9]/g, '')
+                                targetPerWeek: text
                             }))}
                             placeholder="Enter target value"
-                            keyboardType="numeric"
+                            keyboardType="default"
                         />
                     </View>
 

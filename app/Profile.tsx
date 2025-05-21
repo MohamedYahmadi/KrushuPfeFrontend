@@ -8,10 +8,9 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { User } from './Entites/User';
-import * as SecureStore from 'expo-secure-store';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from './types';
@@ -19,10 +18,21 @@ import { ProfileUpdateModal } from './Components/ProfileUpdateModal';
 import { UserProfileUpdateModal } from './Components/UserProfileUpdateModal';
 import { Settings, Key, Building2, Mail, UserCircle2, IdCard } from 'lucide-react-native';
 import axios from 'axios';
+import * as SecureStore from 'expo-secure-store';
+
+interface User {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+  registrationNumber: string;
+  department?: string;
+}
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 
-export default function Profile({ route }) {
+export default function Profile() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,35 +41,19 @@ export default function Profile({ route }) {
 
   const navigation = useNavigation<LoginScreenNavigationProp>();
 
-  const openModificationModal = () => {
-    const role = Platform.OS === 'web'
-        ? localStorage.getItem('role')
-        : SecureStore.getItem('role');
-
-    if (role === 'Admin') setAdminModal(true);
-    else setUserModal(true);
-  };
-
-  const retrieveData = () => {
+  const retrieveData = async () => {
     if (Platform.OS === 'web') {
       const userId = localStorage.getItem('userId');
       const token = localStorage.getItem('token');
-      return { userId, token };
+      const role = localStorage.getItem('role');
+      return { userId, token, role };
     } else {
-      const userId = SecureStore.getItem('userId');
-      const token = SecureStore.getItem('token');
-      return { userId, token };
+      const userId = await SecureStore.getItemAsync('userId');
+      const token = await SecureStore.getItemAsync('token');
+      const role = await SecureStore.getItemAsync('role');
+      return { userId, token, role };
     }
   };
-
-  useEffect(() => {
-    const data = retrieveData();
-    if (!data.userId || !data.token) {
-      navigation.navigate('Login');
-      return;
-    }
-    fetchUserProfile(data.userId);
-  }, []);
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -75,21 +69,55 @@ export default function Profile({ route }) {
     }
   };
 
+  useEffect(() => {
+    const initializeData = async () => {
+      const data = await retrieveData();
+      if (!data.userId || !data.token) {
+        navigation.navigate('Login');
+        return;
+      }
+      await fetchUserProfile(data.userId);
+    };
+
+    initializeData();
+  }, []);
+
+  const openModificationModal = async () => {
+    const data = await retrieveData();
+    if (data.role === 'ADMIN') {
+      setAdminModal(true);
+    } else {
+      setUserModal(true);
+    }
+  };
+
   const handleProfileUpdate = async (updatedData: Partial<User>) => {
     try {
-      const data = retrieveData();
-      const role = data.role;
-      const endpoint = role === 'Admin'
+      const data = await retrieveData();
+      if (!data.userId) return;
+
+      const endpoint = data.role === 'ADMIN'
           ? `http://172.20.10.5:8080/api/admin/update-profile/${data.userId}`
           : `http://172.20.10.5:8080/api/user/update-profile/${data.userId}`;
 
-      const response = await axios.put(endpoint, updatedData);
+      const dataToSend = data.role === 'ADMIN'
+          ? updatedData
+          : {
+            firstName: updatedData.firstName,
+            lastName: updatedData.lastName
+          };
 
-      fetchUserProfile(data.userId);
-      setAdminModal(false);
-      setUserModal(false);
+      await axios.put(endpoint, dataToSend);
+      await fetchUserProfile(data.userId);
+
+      if (data.role === 'ADMIN') {
+        setAdminModal(false);
+      } else {
+        setUserModal(false);
+      }
     } catch (err) {
       console.error('Error updating profile:', err);
+      Alert.alert('Error', 'Failed to update profile');
     }
   };
 
@@ -109,6 +137,14 @@ export default function Profile({ route }) {
     );
   }
 
+  if (!user) {
+    return (
+        <View style={styles.loadingContainer}>
+          <Text>No user data available</Text>
+        </View>
+    );
+  }
+
   return (
       <ScrollView style={styles.container}>
         <LinearGradient
@@ -121,89 +157,85 @@ export default function Profile({ route }) {
                 style={styles.profileImage}
             />
             <Text style={styles.profileName}>
-              {user?.firstName} {user?.lastName}
+              {user.firstName} {user.lastName}
             </Text>
-            <Text style={styles.profileEmail}>{user?.email}</Text>
+            <Text style={styles.profileEmail}>{user.email}</Text>
           </View>
         </LinearGradient>
 
         <View style={styles.contentContainer}>
           <View style={styles.card}>
-            {user && (
-                <>
-                  <View style={styles.infoSection}>
-                    <View style={styles.infoContainer}>
-                      <UserCircle2 size={24} color="#0056b3" style={styles.icon} />
-                      <View style={styles.infoTextContainer}>
-                        <Text style={styles.label}>First Name</Text>
-                        <Text style={styles.value}>{user.firstName}</Text>
-                      </View>
-                    </View>
+            <View style={styles.infoSection}>
+              <View style={styles.infoContainer}>
+                <UserCircle2 size={24} color="#0056b3" style={styles.icon} />
+                <View style={styles.infoTextContainer}>
+                  <Text style={styles.label}>First Name</Text>
+                  <Text style={styles.value}>{user.firstName}</Text>
+                </View>
+              </View>
 
-                    <View style={styles.infoContainer}>
-                      <UserCircle2 size={24} color="#0056b3" style={styles.icon} />
-                      <View style={styles.infoTextContainer}>
-                        <Text style={styles.label}>Last Name</Text>
-                        <Text style={styles.value}>{user.lastName}</Text>
-                      </View>
-                    </View>
+              <View style={styles.infoContainer}>
+                <UserCircle2 size={24} color="#0056b3" style={styles.icon} />
+                <View style={styles.infoTextContainer}>
+                  <Text style={styles.label}>Last Name</Text>
+                  <Text style={styles.value}>{user.lastName}</Text>
+                </View>
+              </View>
 
-                    <View style={styles.infoContainer}>
-                      <Mail size={24} color="#0056b3" style={styles.icon} />
-                      <View style={styles.infoTextContainer}>
-                        <Text style={styles.label}>Email</Text>
-                        <Text style={styles.value}>{user.email}</Text>
-                      </View>
-                    </View>
+              <View style={styles.infoContainer}>
+                <Mail size={24} color="#0056b3" style={styles.icon} />
+                <View style={styles.infoTextContainer}>
+                  <Text style={styles.label}>Email</Text>
+                  <Text style={styles.value}>{user.email}</Text>
+                </View>
+              </View>
 
-                    <View style={styles.infoContainer}>
-                      <IdCard size={24} color="#0056b3" style={styles.icon} />
-                      <View style={styles.infoTextContainer}>
-                        <Text style={styles.label}>Role</Text>
-                        <Text style={styles.value}>{user.role}</Text>
-                      </View>
-                    </View>
+              <View style={styles.infoContainer}>
+                <IdCard size={24} color="#0056b3" style={styles.icon} />
+                <View style={styles.infoTextContainer}>
+                  <Text style={styles.label}>Role</Text>
+                  <Text style={styles.value}>{user.role}</Text>
+                </View>
+              </View>
 
-                    <View style={styles.infoContainer}>
-                      <Building2 size={24} color="#0056b3" style={styles.icon} />
-                      <View style={styles.infoTextContainer}>
-                        <Text style={styles.label}>Registration Number</Text>
-                        <Text style={styles.value}>{user.registrationNumber}</Text>
-                      </View>
-                    </View>
+              <View style={styles.infoContainer}>
+                <Building2 size={24} color="#0056b3" style={styles.icon} />
+                <View style={styles.infoTextContainer}>
+                  <Text style={styles.label}>Registration Number</Text>
+                  <Text style={styles.value}>{user.registrationNumber}</Text>
+                </View>
+              </View>
 
-                    {user.department && (
-                        <View style={styles.infoContainer}>
-                          <Building2 size={24} color="#0056b3" style={styles.icon} />
-                          <View style={styles.infoTextContainer}>
-                            <Text style={styles.label}>Department</Text>
-                            <Text style={styles.value}>{user.department}</Text>
-                          </View>
-                        </View>
-                    )}
+              {user.department && (
+                  <View style={styles.infoContainer}>
+                    <Building2 size={24} color="#0056b3" style={styles.icon} />
+                    <View style={styles.infoTextContainer}>
+                      <Text style={styles.label}>Department</Text>
+                      <Text style={styles.value}>{user.department}</Text>
+                    </View>
                   </View>
+              )}
+            </View>
 
-                  <View style={styles.buttonContainer}>
-                    <Pressable
-                        style={[styles.button, styles.primaryButton]}
-                        onPress={openModificationModal}
-                    >
-                      <Settings size={20} color="#fff" style={styles.buttonIcon} />
-                      <Text style={styles.buttonText}>Modify Profile</Text>
-                    </Pressable>
+            <View style={styles.buttonContainer}>
+              <Pressable
+                  style={[styles.button, styles.primaryButton]}
+                  onPress={openModificationModal}
+              >
+                <Settings size={20} color="#fff" style={styles.buttonIcon} />
+                <Text style={styles.buttonText}>Modify Profile</Text>
+              </Pressable>
 
-                    <Pressable
-                        style={[styles.button, styles.secondaryButton]}
-                        onPress={() => navigation.navigate('ChangePassword')}
-                    >
-                      <Key size={20} color="#0056b3" style={styles.buttonIcon} />
-                      <Text style={[styles.buttonText, styles.secondaryButtonText]}>
-                        Change Password
-                      </Text>
-                    </Pressable>
-                  </View>
-                </>
-            )}
+              <Pressable
+                  style={[styles.button, styles.secondaryButton]}
+                  onPress={() => navigation.navigate('ChangePassword')}
+              >
+                <Key size={20} color="#0056b3" style={styles.buttonIcon} />
+                <Text style={[styles.buttonText, styles.secondaryButtonText]}>
+                  Change Password
+                </Text>
+              </Pressable>
+            </View>
           </View>
         </View>
 

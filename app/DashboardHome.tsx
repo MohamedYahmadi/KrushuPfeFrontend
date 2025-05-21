@@ -15,7 +15,9 @@ import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import WasteReasonModal from './Components/WasteReasonModal';
-import ActionItemModal from './/Components/ActionItemModal';
+import ActionItemModal from './Components/ActionItemModal';
+import AllWasteReasonsModal from './Components/AllWasteReasonsModal';
+import AllActionItemsModal from './Components/AllActionItemsModal';
 import { SelectList } from 'react-native-dropdown-select-list';
 
 // API endpoints
@@ -40,7 +42,7 @@ interface Indicator {
 }
 
 interface DailyValue {
-  day: string;
+  date: string;
   value: string;
 }
 
@@ -58,7 +60,7 @@ interface ActionItem {
 
 interface UserData {
   id: number | null;
-  role: string | null;
+  role: 'ADMIN' | 'TEAM_MEMBER' | 'VIEWER' | null;
   department: string | null;
 }
 
@@ -79,17 +81,19 @@ const DashBoardHome = ({ navigation }: { navigation: any }) => {
   const [allDepartments, setAllDepartments] = useState<{key: string, value: string}[]>([]);
   const [wasteModalVisible, setWasteModalVisible] = useState(false);
   const [actionModalVisible, setActionModalVisible] = useState(false);
+  const [allWasteModalVisible, setAllWasteModalVisible] = useState(false);
+  const [allActionModalVisible, setAllActionModalVisible] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   const days = ['Target', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
   const dayIndexMap: Record<string, number> = {
-    'Monday': 1,
-    'Tuesday': 2,
-    'Wednesday': 3,
-    'Thursday': 4,
-    'Friday': 5,
-    'Saturday': 6
+    'MONDAY': 1,
+    'TUESDAY': 2,
+    'WEDNESDAY': 3,
+    'THURSDAY': 4,
+    'FRIDAY': 5,
+    'SATURDAY': 6
   };
 
   const getSecureItem = async (key: string): Promise<string | null> => {
@@ -117,7 +121,7 @@ const DashBoardHome = ({ navigation }: { navigation: any }) => {
 
       const user = {
         id: parseInt(id),
-        role: role.toUpperCase(),
+        role: role.toUpperCase() as 'ADMIN' | 'TEAM_MEMBER' | 'VIEWER',
         department
       };
 
@@ -139,47 +143,51 @@ const DashBoardHome = ({ navigation }: { navigation: any }) => {
 
       const response = await axios.get(DEPARTMENTS_API);
 
-      // Format departments for SelectList
       const formattedDepts = response.data.map((dept: any) => ({
         key: dept.departmentName.trim(),
-        value: dept.departmentName.trim()
+        value: dept.departmentName.trim(),
       }));
       setAllDepartments(formattedDepts);
 
-      const transformedData = response.data.map((dept: any) => ({
-        id: dept.departmentId,
-        name: dept.departmentName.trim(),
-        indicators: (dept.indicators || []).map((ind: any) => {
-          const values = [
-            ind.targetPerWeek,
-            ...Array(6).fill(null)
-          ];
+      const transformedData = response.data.map((dept: any) => {
+        const indicators = (dept.indicators || [])
+          .map((ind: any) => {
+            const values = Array(7).fill(null);
+            values[0] = ind.targetPerWeek?.toString() || '0';
 
-          (ind.dailyValues || []).forEach((dailyValue: any) => {
-            try {
-              const date = new Date(dailyValue.day);
-              date.setHours(0, 0, 0, 0);
-              const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
-              const dayIndex = dayIndexMap[dayName];
-              if (dayIndex && dayIndex <= 6) {
-                values[dayIndex] = dailyValue.value;
+            (ind.dailyValues || []).forEach((dailyValue: any) => {
+              try {
+                const dateStr = dailyValue.date;
+                const date = new Date(dateStr);
+                const dayName = date.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase();
+                const dayIndex = dayIndexMap[dayName];
+
+                if (dayIndex !== undefined && dailyValue.value !== null) {
+                  values[dayIndex] = dailyValue.value.toString();
+                }
+              } catch (e) {
+                console.error('Error processing daily value:', e);
               }
-            } catch (e) {
-              console.error('Error processing daily value:', e);
-            }
-          });
+            });
 
-          return {
-            id: ind.id,
-            name: ind.name,
-            targetPerWeek: ind.targetPerWeek,
-            dailyValues: ind.dailyValues,
-            values: values
-          };
-        }),
-        wasteReasons: dept.wasteReasons || [],
-        actionItems: dept.actionItems || []
-      }));
+            return {
+              id: ind.id,
+              name: ind.name,
+              targetPerWeek: ind.targetPerWeek,
+              dailyValues: ind.dailyValues,
+              values: values,
+            };
+          })
+          .sort((a: any, b: any) => a.id - b.id); // Sort indicators by `id`
+
+        return {
+          id: dept.departmentId,
+          name: dept.departmentName.trim(),
+          indicators,
+          wasteReasons: dept.wasteReasons || [],
+          actionItems: dept.actionItems || [],
+        };
+      });
 
       setDepartments(transformedData);
       setError(null);
@@ -197,12 +205,16 @@ const DashBoardHome = ({ navigation }: { navigation: any }) => {
   };
 
   const addWasteReason = async (reason: string, departmentName: string) => {
+    if (userData.role === 'VIEWER') {
+      Alert.alert('Error', 'Viewers cannot add waste reasons');
+      return;
+    }
+
     setIsAdding(true);
     try {
       const { id, role } = userData;
       if (!id) throw new Error('User ID not found');
 
-      // For team members, use their own department
       const deptToUse = role === 'TEAM_MEMBER' && userData.department
           ? userData.department
           : departmentName;
@@ -228,12 +240,16 @@ const DashBoardHome = ({ navigation }: { navigation: any }) => {
   };
 
   const addActionItem = async (action: string, departmentName: string) => {
+    if (userData.role === 'VIEWER') {
+      Alert.alert('Error', 'Viewers cannot add action items');
+      return;
+    }
+
     setIsAdding(true);
     try {
       const { id, role } = userData;
       if (!id) throw new Error('User ID not found');
 
-      // For team members, use their own department
       const deptToUse = role === 'TEAM_MEMBER' && userData.department
           ? userData.department
           : departmentName;
@@ -341,6 +357,7 @@ const DashBoardHome = ({ navigation }: { navigation: any }) => {
 
   const currentDepartment = departments[activeCategory];
   const isAdmin = userData.role === 'ADMIN';
+  const isViewer = userData.role === 'VIEWER';
 
   return (
       <View style={styles.container}>
@@ -416,8 +433,8 @@ const DashBoardHome = ({ navigation }: { navigation: any }) => {
                     </View>
 
                     {/* Table Rows */}
-                    {currentDepartment.indicators.map((indicator, index) => (
-                        <View key={`indicator-${indicator.id || index}`} style={styles.tableRow}>
+                    {currentDepartment.indicators.map((indicator) => (
+                        <View key={`indicator-${indicator.id}`} style={styles.tableRow}>
                           <View style={[styles.tableCell, styles.firstColumn]}>
                             <Text style={styles.metricText}>{indicator.name}</Text>
                           </View>
@@ -446,29 +463,42 @@ const DashBoardHome = ({ navigation }: { navigation: any }) => {
             <View style={styles.cardHeader}>
               <MaterialCommunityIcons name="alert-octagon" size={20} color="#E74C3C" />
               <Text style={styles.cardTitle}>Top Waste Reasons</Text>
-              {userData.role !== 'VIEWER' && (
+              <View style={styles.cardHeaderActions}>
+                {!isViewer && (
+                    <TouchableOpacity
+                        style={styles.addIcon}
+                        onPress={() => setWasteModalVisible(true)}
+                    >
+                      <MaterialCommunityIcons name="plus" size={24} color="#4A6FA5" />
+                    </TouchableOpacity>
+                )}
                 <TouchableOpacity
-                  style={styles.addIcon}
-                  onPress={() => setWasteModalVisible(true)}
+                    style={styles.showMoreButton}
+                    onPress={() => setAllWasteModalVisible(true)}
                 >
-                  <MaterialCommunityIcons name="plus" size={24} color="#4A6FA5" />
+                  <Text style={styles.showMoreText}>Show More</Text>
                 </TouchableOpacity>
-              )}
+              </View>
             </View>
 
             <View style={styles.cardContent}>
               {currentDepartment?.wasteReasons?.length > 0 ? (
-                currentDepartment.wasteReasons.map((reason, index) => (
-                  <View key={`waste-${index}`} style={styles.listItem}>
-                    <Text style={styles.listBullet}>{index + 1}.</Text>
-                    <Text style={styles.listText}>{reason.reason}</Text>
-                    <Text style={styles.actionTime}>
-                      {new Date(reason.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </Text>
-                  </View>
-                ))
+                  currentDepartment.wasteReasons.slice(0, 5).map((reason, index) => (
+                      <View key={`waste-${index}`} style={styles.listItem}>
+                        <Text style={styles.listBullet}>{index + 1}.</Text>
+                        <Text style={styles.listText}>{reason.reason}</Text>
+                        <Text style={styles.actionTime}>
+                          {new Date(reason.createdAt).toLocaleString([], {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </Text>
+                      </View>
+                  ))
               ) : (
-                <Text style={styles.emptyListText}>No waste reasons found</Text>
+                  <Text style={styles.emptyListText}>No waste reasons found</Text>
               )}
             </View>
           </View>
@@ -478,54 +508,89 @@ const DashBoardHome = ({ navigation }: { navigation: any }) => {
             <View style={styles.cardHeader}>
               <MaterialCommunityIcons name="clipboard-list" size={20} color="#3498DB" />
               <Text style={styles.cardTitle}>Action Items</Text>
-              {userData.role !== 'VIEWER' && (
+              <View style={styles.cardHeaderActions}>
+                {!isViewer && (
+                    <TouchableOpacity
+                        style={styles.addIcon}
+                        onPress={() => setActionModalVisible(true)}
+                    >
+                      <MaterialCommunityIcons name="plus" size={24} color="#4A6FA5" />
+                    </TouchableOpacity>
+                )}
                 <TouchableOpacity
-                  style={styles.addIcon}
-                  onPress={() => setActionModalVisible(true)}
+                    style={styles.showMoreButton}
+                    onPress={() => setAllActionModalVisible(true)}
                 >
-                  <MaterialCommunityIcons name="plus" size={24} color="#4A6FA5" />
+                  <Text style={styles.showMoreText}>Show More</Text>
                 </TouchableOpacity>
-              )}
+              </View>
             </View>
 
             <View style={styles.cardContent}>
               {currentDepartment?.actionItems?.length > 0 ? (
-                currentDepartment.actionItems.map((item, index) => (
-                  <View key={`action-${index}`} style={styles.actionItem}>
-                    <Text style={styles.actionText}>{item.action}</Text>
-                    <View style={styles.actionMeta}>
-                      <Text style={styles.actionTime}>
-                        {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </Text>
-                    </View>
-                  </View>
-                ))
+                  currentDepartment.actionItems.slice(0, 5).map((item, index) => (
+                      <View key={`action-${index}`} style={styles.actionItem}>
+                        <Text style={styles.actionText}>{item.action}</Text>
+                        <View style={styles.actionMeta}>
+                          <Text style={styles.actionTime}>
+                            {new Date(item.createdAt).toLocaleString([], {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </Text>
+                        </View>
+                      </View>
+                  ))
               ) : (
-                <Text style={styles.emptyListText}>No action items found</Text>
+                  <Text style={styles.emptyListText}>No action items found</Text>
               )}
             </View>
           </View>
         </ScrollView>
 
         {/* Modals */}
-        <WasteReasonModal
-            visible={wasteModalVisible}
-            onClose={() => setWasteModalVisible(false)}
-            onSubmit={addWasteReason}
-            isAdding={isAdding}
-            departments={allDepartments.map(d => d.value)}
-            userRole={userData.role || ''}
-            userDepartment={userData.department || ''}
+        {!isViewer && (
+            <>
+              <WasteReasonModal
+                  visible={wasteModalVisible}
+                  onClose={() => setWasteModalVisible(false)}
+                  onSubmit={addWasteReason}
+                  isAdding={isAdding}
+                  departments={allDepartments.map(d => d.value)}
+                  userRole={userData.role || ''}
+                  userDepartment={userData.department || ''}
+              />
+
+              <ActionItemModal
+                  visible={actionModalVisible}
+                  onClose={() => setActionModalVisible(false)}
+                  onSubmit={addActionItem}
+                  isAdding={isAdding}
+                  departments={allDepartments.map(d => d.value)}
+                  userRole={userData.role || ''}
+                  userDepartment={userData.department || ''}
+              />
+            </>
+        )}
+
+        <AllWasteReasonsModal
+            visible={allWasteModalVisible}
+            onClose={() => setAllWasteModalVisible(false)}
+            wasteReasons={currentDepartment?.wasteReasons || []}
+            userId={userData.id || 0}
+            refreshData={fetchDepartments}
+            isAdmin={isAdmin}
         />
 
-        <ActionItemModal
-            visible={actionModalVisible}
-            onClose={() => setActionModalVisible(false)}
-            onSubmit={addActionItem}
-            isAdding={isAdding}
-            departments={allDepartments.map(d => d.value)}
-            userRole={userData.role || ''}
-            userDepartment={userData.department || ''}
+        <AllActionItemsModal
+            visible={allActionModalVisible}
+            onClose={() => setAllActionModalVisible(false)}
+            actionItems={currentDepartment?.actionItems || []}
+            userId={userData.id || 0}
+            refreshData={fetchDepartments}
+            isAdmin={isAdmin}
         />
       </View>
   );
@@ -744,6 +809,11 @@ const styles = StyleSheet.create({
     color: '#2C3E50',
     marginLeft: 8,
   },
+  cardHeaderActions: {
+    flexDirection: 'row',
+    marginLeft: 'auto',
+    alignItems: 'center',
+  },
   cardContent: {
     marginBottom: 12,
   },
@@ -751,6 +821,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: 8,
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   listBullet: {
     color: '#E74C3C',
@@ -779,10 +850,19 @@ const styles = StyleSheet.create({
     color: '#95A5A6',
     fontSize: 12,
     marginLeft: 8,
+    width: 100,
+    textAlign: 'right',
   },
   addIcon: {
-    marginLeft: 'auto',
     padding: 8,
+  },
+  showMoreButton: {
+    padding: 8,
+    marginLeft: 8,
+  },
+  showMoreText: {
+    color: '#4A6FA5',
+    fontSize: 14,
   },
   navButton: {
     padding: 8,

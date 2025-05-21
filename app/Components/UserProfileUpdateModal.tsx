@@ -10,93 +10,118 @@ import {
   ScrollView,
   Platform,
   KeyboardAvoidingView,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
-
 import * as SecureStore from "expo-secure-store";
 
-export function UserProfileUpdateModal(props) {
-  const retrieveId = () => {
+interface UserProfileUpdateModalProps {
+  visible: boolean;
+  user: {
+    firstName: string;
+    lastName: string;
+  };
+  onClose: () => void;
+  onSubmit: (data: { firstName: string; lastName: string }) => void;
+}
+
+export function UserProfileUpdateModal({ visible, user, onClose, onSubmit }: UserProfileUpdateModalProps) {
+  const [data, setData] = useState({
+    firstName: user.firstName,
+    lastName: user.lastName,
+  });
+  const [loading, setLoading] = useState(false);
+
+  const retrieveId = async () => {
     if (Platform.OS === "web") {
-      let userId = localStorage.getItem("userId");
+      const userId = localStorage.getItem("userId");
       return { userId };
     } else {
-      let userId = SecureStore.getItem("userId");
-
+      const userId = await SecureStore.getItemAsync("userId");
       return { userId };
     }
   };
 
-  const [data, setData] = useState({
-    firstName: props.user.firstName,
-    lastName: props.user.lastName,
-  });
+  const submitChanges = async () => {
+    setLoading(true);
+    try {
+      const { userId } = await retrieveId();
+      if (!userId) throw new Error("User ID not found");
 
-  const submitChanges = () => {
-    console.log(data);
+      await axios.put(
+          `http://172.20.10.5:8080/api/user/update-profile/${userId}`,
+          {
+            firstName: data.firstName,
+            lastName: data.lastName
+          }
+      );
 
-    let id = retrieveId().userId;
-
-    axios
-      .put("http://172.20.10.5:8080/api/user/update-profile/" + id, data)
-      .then(() => {
-        props.onClose();
-      });
+      onSubmit(data);
+      onClose();
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      Alert.alert("Error", "Failed to update profile");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <View style={styles.container}>
-      <Modal visible={props.visible} animationType="slide" transparent={true}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.keyboardAvoidingView}
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <View style={styles.header}>
-                <Text style={styles.title}>User profile update</Text>
-                <TouchableOpacity>
-                  <Text style={styles.closeButton} onPress={props.onClose}>
-                    ✕
-                  </Text>
-                </TouchableOpacity>
+      <View style={styles.container}>
+        <Modal visible={visible} animationType="slide" transparent={true}>
+          <KeyboardAvoidingView
+              behavior={Platform.OS === "ios" ? "padding" : "height"}
+              style={styles.keyboardAvoidingView}
+          >
+            <View style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                <View style={styles.header}>
+                  <Text style={styles.title}>Update Profile</Text>
+                  <TouchableOpacity onPress={onClose}>
+                    <Text style={styles.closeButton}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView style={styles.formContainer}>
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>First name</Text>
+                    <TextInput
+                        style={styles.input}
+                        value={data.firstName}
+                        onChangeText={(value) =>
+                            setData((old) => ({ ...old, firstName: value }))
+                        }
+                    />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Last name</Text>
+                    <TextInput
+                        style={styles.input}
+                        value={data.lastName}
+                        onChangeText={(value) =>
+                            setData((old) => ({ ...old, lastName: value }))
+                        }
+                    />
+                  </View>
+
+                  <TouchableOpacity
+                      style={[styles.submitButton, loading && styles.disabledButton]}
+                      onPress={submitChanges}
+                      disabled={loading}
+                  >
+                    {loading ? (
+                        <ActivityIndicator color="white" />
+                    ) : (
+                        <Text style={styles.submitButtonText}>Submit</Text>
+                    )}
+                  </TouchableOpacity>
+                </ScrollView>
               </View>
-
-              <ScrollView style={styles.formContainer}>
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>First name</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={data.firstName}
-                    onChangeText={(value) =>
-                      setData((old) => ({ ...old, firstName: value }))
-                    }
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Last name</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={data.lastName}
-                    onChangeText={(value) =>
-                      setData((old) => ({ ...old, lastName: value }))
-                    }
-                    keyboardType="email-address"
-                  />
-                </View>
-
-                <TouchableOpacity
-                  style={styles.submitButton}
-                  onPress={submitChanges}
-                >
-                  <Text style={styles.submitButtonText}>Submit</Text>
-                </TouchableOpacity>
-              </ScrollView>
             </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-    </View>
+          </KeyboardAvoidingView>
+        </Modal>
+      </View>
   );
 }
 
@@ -105,18 +130,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-  },
-  openButton: {
-    backgroundColor: "#007AFF",
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 25,
-    elevation: 3,
-  },
-  openButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
   },
   keyboardAvoidingView: {
     flex: 1,
@@ -168,15 +181,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#333",
   },
-  pickerContainer: {
-    backgroundColor: "#f5f5f5",
-    borderRadius: 10,
-    overflow: "hidden",
-  },
-  picker: {
-    height: 50,
-    color: "#333",
-  },
   submitButton: {
     backgroundColor: "#007AFF",
     borderRadius: 10,
@@ -184,11 +188,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 10,
   },
+  disabledButton: {
+    opacity: 0.7,
+  },
   submitButtonText: {
     color: "white",
     fontSize: 16,
     fontWeight: "600",
   },
 });
-export default UserProfileUpdateModal;
 
+export default UserProfileUpdateModal;
