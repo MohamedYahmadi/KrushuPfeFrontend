@@ -24,7 +24,7 @@ import {
     PlusCircle,
     UserCircle,
     LogOut,
-    BarChart3, List, LucideHistory
+    BarChart3, List, LucideHistory, MessageCircle
 } from "lucide-react-native";
 import Profile from "./Profile";
 import CreateAccount from "./CreateAccount";
@@ -39,6 +39,8 @@ import IndicatorManagementScreen from "./IndicatorManagementScreen";
 import HistoryDashboard from "@/app/HistoryDashboard";
 import UpdateIndicatorValue from "./UpdateIndicatorValue";
 import userUpdateIndicatorValue from "./userUpdateIndicatorValue"
+import ChatbotScreen from './ChatbotScreen';
+
 const Drawer = createDrawerNavigator();
 
 const CustomDrawerContent = (props) => {
@@ -188,6 +190,14 @@ export default function Dashboard() {
                 options={{
                     title: "My Profile",
                     drawerIcon: ({ color, size }) => <UserCircle size={size} color={color} />
+                }}
+            />
+            <Drawer.Screen
+                name="Chatbot"
+                component={ChatbotScreen}
+                options={{
+                    title: "AI Assistant",
+                    drawerIcon: ({ color, size }) => <MessageCircle size={size} color={color} />
                 }}
             />
 

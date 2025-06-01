@@ -54,19 +54,34 @@ const AllActionItemsModal: React.FC<AllActionItemsModalProps> = ({
     };
 
     const handleDelete = async (actionItemId: number) => {
-        setIsLoading(true);
-        try {
-            await axios.delete(`http://172.20.10.5:8080/api/admin/action-items/${actionItemId}`, {
-                data: { userId },
-            });
-            refreshData();
-            Alert.alert('Success', 'Action item deleted successfully');
-        } catch (error) {
-            console.error('Error deleting action item:', error);
-            Alert.alert('Error', 'Failed to delete action item');
-        } finally {
-            setIsLoading(false);
-        }
+        Alert.alert(
+            "Confirm Delete",
+            "Are you sure you want to delete this action item?",
+            [
+                {
+                    text: "Cancel",
+                    style: "cancel"
+                },
+                {
+                    text: "Delete",
+                    onPress: async () => {
+                        setIsLoading(true);
+                        try {
+                            await axios.delete(`http://172.20.10.5:8080/api/admin/action-items/${actionItemId}`, {
+                                data: { userId },
+                            });
+                            refreshData();
+                            Alert.alert('Success', 'Action item deleted successfully');
+                        } catch (error) {
+                            console.error('Error deleting action item:', error);
+                            Alert.alert('Error', 'Failed to delete action item');
+                        } finally {
+                            setIsLoading(false);
+                        }
+                    }
+                }
+            ]
+        );
     };
 
     return (
@@ -90,44 +105,74 @@ const AllActionItemsModal: React.FC<AllActionItemsModalProps> = ({
                             <Text style={styles.emptyText}>No action items found</Text>
                         ) : (
                             actionItems.map((item, index) => (
-                                <View key={`action-${item.id}`} style={styles.listItem}>
-                                    <Text style={styles.listBullet}>{index + 1}.</Text>
-                                    <Text style={styles.listText}>{item.action}</Text>
-                                    <Text style={styles.dateTimeText}>
-                                        {new Date(item.createdAt).toLocaleString([], {
-                                            month: 'short',
-                                            day: 'numeric',
-                                            hour: '2-digit',
-                                            minute: '2-digit',
-                                        })}
-                                    </Text>
-                                    {isAdmin && (
-                                        <View style={styles.actionButtons}>
-                                            <TouchableOpacity
-                                                onPress={() => {
-                                                    setEditingId(item.id);
-                                                    setEditedAction(item.action);
-                                                }}
-                                            >
-                                                <MaterialCommunityIcons
-                                                    name="pencil"
-                                                    size={20}
-                                                    color="#4A6FA5"
-                                                />
-                                            </TouchableOpacity>
-                                            <TouchableOpacity
-                                                onPress={() => handleDelete(item.id)}
-                                                disabled={isLoading}
-                                            >
-                                                <MaterialCommunityIcons
-                                                    name="trash-can"
-                                                    size={20}
-                                                    color="#E74C3C"
-                                                />
-                                            </TouchableOpacity>
+                                <React.Fragment key={`action-${item.id}`}>
+                                    {editingId === item.id ? (
+                                        <View style={styles.editContainer}>
+                                            <TextInput
+                                                style={styles.editInput}
+                                                value={editedAction}
+                                                onChangeText={setEditedAction}
+                                                autoFocus
+                                                multiline
+                                            />
+                                            <View style={styles.editButtons}>
+                                                <TouchableOpacity
+                                                    style={styles.cancelButton}
+                                                    onPress={() => setEditingId(null)}
+                                                    disabled={isLoading}
+                                                >
+                                                    <Text style={styles.buttonText}>Cancel</Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity
+                                                    style={styles.saveButton}
+                                                    onPress={() => handleUpdate(item.id)}
+                                                    disabled={isLoading}
+                                                >
+                                                    <Text style={styles.buttonText}>Save</Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                        </View>
+                                    ) : (
+                                        <View style={styles.listItem}>
+                                            <Text style={styles.listBullet}>{index + 1}.</Text>
+                                            <Text style={styles.listText}>{item.action}</Text>
+                                            <Text style={styles.dateTimeText}>
+                                                {new Date(item.createdAt).toLocaleString([], {
+                                                    month: 'short',
+                                                    day: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                })}
+                                            </Text>
+                                            {isAdmin && (
+                                                <View style={styles.actionButtons}>
+                                                    <TouchableOpacity
+                                                        onPress={() => {
+                                                            setEditingId(item.id);
+                                                            setEditedAction(item.action);
+                                                        }}
+                                                    >
+                                                        <MaterialCommunityIcons
+                                                            name="pencil"
+                                                            size={20}
+                                                            color="#4A6FA5"
+                                                        />
+                                                    </TouchableOpacity>
+                                                    <TouchableOpacity
+                                                        onPress={() => handleDelete(item.id)}
+                                                        disabled={isLoading}
+                                                    >
+                                                        <MaterialCommunityIcons
+                                                            name="trash-can"
+                                                            size={20}
+                                                            color="#E74C3C"
+                                                        />
+                                                    </TouchableOpacity>
+                                                </View>
+                                            )}
                                         </View>
                                     )}
-                                </View>
+                                </React.Fragment>
                             ))
                         )}
                     </View>
@@ -170,7 +215,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: 8,
+        marginBottom: 12,
+        paddingVertical: 8,
     },
     listBullet: {
         color: '#E74C3C',
@@ -200,6 +246,42 @@ const styles = StyleSheet.create({
         color: '#95A5A6',
         textAlign: 'center',
         marginVertical: 16,
+    },
+    editContainer: {
+        backgroundColor: '#f9f9f9',
+        borderRadius: 8,
+        padding: 12,
+        marginBottom: 12,
+    },
+    editInput: {
+        borderWidth: 1,
+        borderColor: '#ddd',
+        borderRadius: 4,
+        padding: 10,
+        backgroundColor: 'white',
+        marginBottom: 10,
+        minHeight: 50,
+    },
+    editButtons: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        gap: 10,
+    },
+    saveButton: {
+        backgroundColor: '#4A6FA5',
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 4,
+    },
+    cancelButton: {
+        backgroundColor: '#95A5A6',
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 4,
+    },
+    buttonText: {
+        color: 'white',
+        fontSize: 14,
     },
 });
 

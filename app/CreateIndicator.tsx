@@ -162,17 +162,19 @@ export default function CreateIndicator() {
                         </View>
                     </View>
 
-                    <View style={styles.section}>
+                   <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Target Information</Text>
                         <View style={styles.inputContainer}>
                             <Target size={24} color="#0056b3" style={styles.icon} />
                             <TextInput
                                 style={styles.input}
-                                placeholder="Target Per Week"
+                                placeholder="Target Per Week (%)"
                                 placeholderTextColor="#666"
                                 value={targetPerWeek}
-                                onChangeText={setTargetPerWeek}
-                                keyboardType="numeric"
+                                onChangeText={(text) => {
+                                    const sanitizedText = text.replace(/[^0-9]/g, ''); // Allow only numbers
+                                    setTargetPerWeek(sanitizedText ? `${sanitizedText}%` : '');
+                                }}
                             />
                         </View>
                     </View>
